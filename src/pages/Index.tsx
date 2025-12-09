@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Loader2, Zap, Shield, Code, FileText, Bot, Layers, Terminal, Play, Check, ChevronRight, Sparkles, Database, Lock, Globe } from 'lucide-react';
 import logo from '@/assets/logo.png';
+import logoWhite from '@/assets/logo-white.png';
 import { RotatingText } from '@/components/RotatingText';
 const heroRotatingPhrases = ['Tu IA a medida en minutos', 'RAG sin infraestructura', 'APIs inteligentes al instante', 'Tu conocimiento, automatizado', 'Chatbots con tu contenido', 'Búsqueda semántica potente', 'Respuestas precisas, siempre', 'De PDF a API en segundos', 'IA contextual sin código', 'Tu asistente personalizado'];
 export default function Index() {
@@ -27,7 +28,8 @@ export default function Index() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img src={logo} alt="RAGify" className="h-28 w-auto -my-6" />
+            <img src={logo} alt="RAGify" className="h-28 w-auto -my-6 dark:hidden" />
+            <img src={logoWhite} alt="RAGify" className="h-28 w-auto -my-6 hidden dark:block" />
           </div>
           
           <div className="hidden md:flex items-center gap-8">
