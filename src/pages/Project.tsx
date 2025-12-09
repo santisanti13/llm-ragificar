@@ -6,14 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { ArrowLeft, FileText, MessageSquare, Loader2, Brain, Upload, Trash2, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { ArrowLeft, FileText, MessageSquare, Loader2, Brain, Upload, Trash2, CheckCircle, AlertCircle, Clock, Settings } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { ChatInterface } from '@/components/ChatInterface';
+import { TrainingConfig } from '@/components/TrainingConfig';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-
 interface DocumentItem {
   id: string;
   name: string;
@@ -223,10 +223,14 @@ export default function ProjectPage() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="documents" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Documentos ({documents.length})
+            </TabsTrigger>
+            <TabsTrigger value="training" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Entrenamiento
             </TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
@@ -309,6 +313,10 @@ export default function ProjectPage() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="training" className="animate-fade-in">
+            <TrainingConfig projectId={id!} />
           </TabsContent>
 
           <TabsContent value="chat" className="animate-fade-in">
