@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, Brain, Sparkles, FileText, MessageSquare, ArrowLeft } from 'lucide-react';
+import { Loader2, Brain, Sparkles, FileText, MessageSquare, ArrowLeft, CheckCircle } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -20,19 +20,40 @@ const emailSchema = z.object({
   email: z.string().email('Email inválido'),
 });
 
+const passwordSchema = z.object({
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  confirmPassword: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: 'Las contraseñas no coinciden',
+  path: ['confirmPassword'],
+});
+
+type AuthMode = 'login' | 'forgot' | 'reset';
+
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, signIn, signUp, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [mode, setMode] = useState<AuthMode>('login');
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    // Check if user arrived from password reset email
+    const isReset = searchParams.get('reset') === 'true';
+    if (isReset) {
+      setMode('reset');
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (user && mode !== 'reset') {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [user, navigate, mode]);
 
   const handleSubmit = async (mode: 'signin' | 'signup') => {
     const validation = authSchema.safeParse({ email, password });
@@ -80,7 +101,37 @@ export default function Auth() {
         toast.error(error.message);
       } else {
         toast.success('Te hemos enviado un email con instrucciones para restablecer tu contraseña.');
-        setShowForgotPassword(false);
+        setMode('login');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    const validation = passwordSchema.safeParse({ password, confirmPassword });
+    if (!validation.success) {
+      toast.error(validation.error.errors[0].message);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password });
+
+      if (error) {
+        toast.error(error.message);
+      } else {
+        setResetSuccess(true);
+        toast.success('¡Contraseña actualizada correctamente!');
+        // Clear URL params
+        window.history.replaceState({}, '', '/auth');
+        setTimeout(() => {
+          setMode('login');
+          setResetSuccess(false);
+          setPassword('');
+          setConfirmPassword('');
+        }, 2000);
       }
     } finally {
       setIsSubmitting(false);
@@ -140,7 +191,14 @@ export default function Auth() {
               <Brain className="h-8 w-8 text-primary" />
               <span className="text-2xl font-display font-bold">RAGify</span>
             </div>
-            {showForgotPassword ? (
+            {mode === 'reset' ? (
+              <>
+                <CardTitle className="text-2xl font-display">Nueva contraseña</CardTitle>
+                <CardDescription>
+                  Ingresa tu nueva contraseña
+                </CardDescription>
+              </>
+            ) : mode === 'forgot' ? (
               <>
                 <CardTitle className="text-2xl font-display">Recuperar contraseña</CardTitle>
                 <CardDescription>
@@ -157,12 +215,53 @@ export default function Auth() {
             )}
           </CardHeader>
           <CardContent>
-            {showForgotPassword ? (
+            {mode === 'reset' ? (
+              resetSuccess ? (
+                <div className="text-center py-8 space-y-4">
+                  <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+                  <p className="text-lg font-medium">¡Contraseña actualizada!</p>
+                  <p className="text-muted-foreground">Redirigiendo al login...</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">Nueva contraseña</Label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirmar contraseña</Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button 
+                    onClick={handleResetPassword} 
+                    className="w-full gradient-primary" 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    Actualizar contraseña
+                  </Button>
+                </div>
+              )
+            ) : mode === 'forgot' ? (
               <div className="space-y-4">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowForgotPassword(false)}
+                  onClick={() => setMode('login')}
                   className="mb-2 -ml-2"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
@@ -227,7 +326,7 @@ export default function Auth() {
                       type="button"
                       variant="link"
                       className="w-full text-muted-foreground"
-                      onClick={() => setShowForgotPassword(true)}
+                      onClick={() => setMode('forgot')}
                     >
                       ¿Olvidaste tu contraseña?
                     </Button>
