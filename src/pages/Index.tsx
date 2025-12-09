@@ -73,8 +73,8 @@ export default function Index() {
             </div>
             
             {/* Headline - Clean and impactful */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight">Tu RAGify
-IA contextual sin código<br />
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight">Tu RAGify 
+Tu conocimiento, automatizado<br />
               <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent inline-block">
                 <RotatingText phrases={heroRotatingPhrases} interval={3500} className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent" />
               </span>
