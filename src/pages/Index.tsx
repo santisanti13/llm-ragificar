@@ -5,20 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Loader2, Zap, Shield, Code, FileText, Bot, Layers, Terminal, Play, Check, ChevronRight, Sparkles, Database, Lock, Globe } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import { RotatingText } from '@/components/RotatingText';
-
-const heroRotatingPhrases = [
-  'Tu IA a medida en minutos',
-  'RAG sin infraestructura',
-  'APIs inteligentes al instante',
-  'Tu conocimiento, automatizado',
-  'Chatbots con tu contenido',
-  'Búsqueda semántica potente',
-  'Respuestas precisas, siempre',
-  'De PDF a API en segundos',
-  'IA contextual sin código',
-  'Tu asistente personalizado',
-];
-
+const heroRotatingPhrases = ['Tu IA a medida en minutos', 'RAG sin infraestructura', 'APIs inteligentes al instante', 'Tu conocimiento, automatizado', 'Chatbots con tu contenido', 'Búsqueda semántica potente', 'Respuestas precisas, siempre', 'De PDF a API en segundos', 'IA contextual sin código', 'Tu asistente personalizado'];
 export default function Index() {
   const navigate = useNavigate();
   const {
@@ -84,15 +71,10 @@ export default function Index() {
             </div>
             
             {/* Headline - Clean and impactful */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight">
-              Tus documentos.
-              <br />
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight">Tu RAGify
+De PDF a API en segundos<br />
               <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent inline-block">
-                <RotatingText 
-                  phrases={heroRotatingPhrases} 
-                  interval={3500} 
-                  className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent"
-                />
+                <RotatingText phrases={heroRotatingPhrases} interval={3500} className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent" />
               </span>
             </h1>
             
