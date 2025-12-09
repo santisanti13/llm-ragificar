@@ -194,9 +194,9 @@ export default function Auth() {
       <div className="flex-1 flex items-center justify-center p-8 relative z-10">
         <Card className="w-full max-w-md glass animate-fade-in border-border/50">
           <CardHeader className="text-center">
-            <div className="lg:hidden flex items-center justify-center mb-4">
-              <img src={logo} alt="RAGify" className="h-24 w-auto dark:hidden" />
-              <img src={logoWhite} alt="RAGify" className="h-24 w-auto hidden dark:block" />
+            <div className="lg:hidden flex items-center justify-center mb-6">
+              <img src={logo} alt="RAGify" className="h-36 w-auto dark:hidden" />
+              <img src={logoWhite} alt="RAGify" className="h-36 w-auto hidden dark:block" />
             </div>
             {mode === 'reset' ? (
               <>
