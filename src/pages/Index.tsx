@@ -28,8 +28,16 @@ export default function Index() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img src={logo} alt="RAGify" className="h-28 w-auto -my-6 dark:hidden" />
-            <img src={logoWhite} alt="RAGify" className="h-28 w-auto -my-6 hidden dark:block" />
+            <img 
+              src={logo} 
+              alt="RAGify" 
+              className="h-36 w-auto -my-8 dark:hidden drop-shadow-[0_0_10px_hsl(65,100%,50%,0.5)]" 
+            />
+            <img 
+              src={logoWhite} 
+              alt="RAGify" 
+              className="h-36 w-auto -my-8 hidden dark:block drop-shadow-[0_0_15px_hsl(65,100%,50%,0.6)]" 
+            />
           </div>
           
           <div className="hidden md:flex items-center gap-8">
