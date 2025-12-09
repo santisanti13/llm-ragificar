@@ -436,15 +436,15 @@ function StaggeredCards() {
     description: "Arrastra PDFs, imágenes, Word, o pega URLs. Nosotros extraemos, limpiamos y vectorizamos automáticamente.",
     icon: Upload,
     features: ['PDFs, Word, imágenes', 'URLs y sitios web', 'Vectorización automática'],
-    gradient: "from-blue-500/20 via-cyan-500/20 to-teal-500/20",
-    iconBg: "bg-gradient-to-br from-blue-500 to-cyan-500"
+    gradient: "from-primary/20 via-neon-green/20 to-primary/10",
+    iconBg: "bg-gradient-to-br from-primary to-neon-green"
   }, {
     step: 2,
     title: "Entrena el comportamiento",
     description: "Define cómo debe responder tu asistente con prompts personalizados y ejemplos de Q&A.",
     icon: Brain,
     features: ['System prompt custom', 'Ejemplos Q&A', 'Tono y estilo únicos'],
-    gradient: "from-primary/20 via-neon-green/20 to-emerald-500/20",
+    gradient: "from-primary/20 via-neon-green/20 to-primary/10",
     iconBg: "bg-gradient-to-br from-primary to-neon-green",
     highlighted: true
   }, {
@@ -453,8 +453,8 @@ function StaggeredCards() {
     description: "Copia tu endpoint y API key. Haz tu primera query en segundos con cualquier lenguaje.",
     icon: Rocket,
     features: ['API REST simple', 'Streaming opcional', 'SDKs disponibles'],
-    gradient: "from-violet-500/20 via-purple-500/20 to-fuchsia-500/20",
-    iconBg: "bg-gradient-to-br from-violet-500 to-purple-500"
+    gradient: "from-primary/20 via-neon-green/20 to-primary/10",
+    iconBg: "bg-gradient-to-br from-primary to-neon-green"
   }];
   return <div ref={containerRef} className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
       {cards.map((card, index) => <div key={card.step} className={`transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`} style={{
