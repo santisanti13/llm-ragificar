@@ -173,7 +173,7 @@ De PDF a API en segundos<br />
             </div>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
               De cero a API en{' '}
-              <span className="text-gradient">3 simples pasos</span>
+              <span className="text-primary">3 simples pasos</span>
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               Sin infraestructura. Sin configuración compleja. Solo sube, entrena e integra.
