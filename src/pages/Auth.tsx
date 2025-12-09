@@ -148,9 +148,9 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Subtle background pattern */}
-      <div className="fixed inset-0 bg-dots opacity-50 pointer-events-none" />
+    <div className="min-h-screen bg-background flex relative">
+      {/* Subtle background pattern - placed with z-0 */}
+      <div className="fixed inset-0 bg-dots opacity-50 -z-10" />
       
       {/* Left side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 relative p-12 flex-col justify-between border-r border-border">
