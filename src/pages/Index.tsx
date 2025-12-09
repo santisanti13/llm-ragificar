@@ -6,6 +6,7 @@ import { ArrowRight, Loader2, Zap, Shield, Code, FileText, Bot, Layers, Terminal
 import logo from '@/assets/logo.png';
 import logoWhite from '@/assets/logo-white.png';
 import logoHero from '@/assets/logo-hero.png';
+import logoHeroSf from '@/assets/logo-hero-sf.png';
 import { RotatingText } from '@/components/RotatingText';
 const heroRotatingPhrases = ['Tu IA a medida en minutos', 'RAG sin infraestructura', 'APIs inteligentes al instante', 'Tu conocimiento, automatizado', 'Chatbots con tu contenido', 'Búsqueda semántica potente', 'Respuestas precisas, siempre', 'De PDF a API en segundos', 'IA contextual sin código', 'Tu asistente personalizado'];
 export default function Index() {
@@ -75,7 +76,11 @@ export default function Index() {
             
             {/* Logo as headline */}
             <div className="mb-8 flex justify-center">
-              <img src={logoHero} alt="RAGify" className="h-32 md:h-40 lg:h-48 w-auto rounded-2xl" />
+              <img 
+                src={logoHeroSf} 
+                alt="RAGify" 
+                className="h-32 md:h-40 lg:h-48 w-auto drop-shadow-[0_0_25px_hsl(65,100%,50%,0.6)] dark:drop-shadow-[0_0_30px_hsl(65,100%,50%,0.7)]" 
+              />
             </div>
             
             <div className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 h-12 md:h-14">
