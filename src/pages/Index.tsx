@@ -73,9 +73,17 @@ export default function Index() {
             </div>
             
             {/* Headline - Clean and impactful */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-[1.1] tracking-tight">
               Tu <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">RAGify</span>
             </h1>
+            
+            <div className="text-2xl md:text-3xl font-semibold mb-6 h-10">
+              <RotatingText 
+                phrases={heroRotatingPhrases} 
+                interval={3500} 
+                className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent" 
+              />
+            </div>
             
             {/* Subheadline - Clear value prop */}
             <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
