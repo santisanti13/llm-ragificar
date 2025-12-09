@@ -68,8 +68,7 @@ export default function Index() {
           <div className="max-w-4xl mx-auto text-center">
             {/* Badge */}
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-8">RAG´s a Service para todos
-              RAG-as-a-Service para developers
-            </div>
+          </div>
             
             {/* Headline - Clean and impactful */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-[1.1] tracking-tight">
