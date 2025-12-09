@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, FolderOpen, Loader2, LogOut, Brain, Search, Calendar, FileText, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { Plus, FolderOpen, Loader2, LogOut, Brain, Search, Calendar, FileText, MoreVertical, Pencil, Trash2, Sparkles, MessageSquare, TrendingUp } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -20,6 +20,7 @@ interface Project {
   description: string | null;
   created_at: string;
   document_count?: number;
+  chunk_count?: number;
 }
 
 export default function Dashboard() {
@@ -55,14 +56,17 @@ export default function Dashboard() {
 
       if (error) throw error;
 
-      // Get document counts
       const projectsWithCounts = await Promise.all(
         (projectsData || []).map(async (project) => {
-          const { count } = await supabase
-            .from('documents')
-            .select('*', { count: 'exact', head: true })
-            .eq('project_id', project.id);
-          return { ...project, document_count: count || 0 };
+          const [docsRes, chunksRes] = await Promise.all([
+            supabase.from('documents').select('*', { count: 'exact', head: true }).eq('project_id', project.id),
+            supabase.from('document_chunks').select('*', { count: 'exact', head: true }).eq('project_id', project.id),
+          ]);
+          return { 
+            ...project, 
+            document_count: docsRes.count || 0,
+            chunk_count: chunksRes.count || 0
+          };
         })
       );
 
@@ -151,9 +155,12 @@ export default function Dashboard() {
       p.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const totalDocuments = projects.reduce((acc, p) => acc + (p.document_count || 0), 0);
+  const totalChunks = projects.reduce((acc, p) => acc + (p.chunk_count || 0), 0);
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="min-h-screen flex items-center justify-center bg-background gradient-mesh">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -161,16 +168,21 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Background */}
+      <div className="fixed inset-0 gradient-mesh pointer-events-none opacity-50" />
+      
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <header className="relative border-b border-border/50 bg-card/50 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Brain className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-display font-bold">RAGify</h1>
+            <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-primary/20">
+              <Brain className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">RAGify</h1>
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
-            <Button variant="ghost" size="sm" onClick={signOut}>
+            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4 mr-2" />
               Salir
             </Button>
@@ -178,21 +190,29 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="relative container mx-auto px-4 py-8">
+        {/* Stats cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <StatCard icon={FolderOpen} label="Proyectos" value={projects.length} color="primary" />
+          <StatCard icon={FileText} label="Documentos" value={totalDocuments} color="accent" />
+          <StatCard icon={Sparkles} label="Chunks" value={totalChunks} color="warning" />
+          <StatCard icon={MessageSquare} label="Consultas" value="-" color="success" />
+        </div>
+
         {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
           <div>
-            <h2 className="text-3xl font-display font-bold">Mis Proyectos</h2>
+            <h2 className="text-3xl font-bold">Mis Proyectos</h2>
             <p className="text-muted-foreground mt-1">Gestiona tus bases de conocimiento RAG</p>
           </div>
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button className="gradient-primary">
+              <Button className="gradient-primary shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 transition-all">
                 <Plus className="h-4 w-4 mr-2" />
                 Nuevo Proyecto
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="glass-strong">
               <DialogHeader>
                 <DialogTitle>Crear nuevo proyecto</DialogTitle>
                 <DialogDescription>
@@ -207,6 +227,7 @@ export default function Dashboard() {
                     placeholder="Mi base de conocimiento"
                     value={newProject.name}
                     onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                    className="bg-background/50"
                   />
                 </div>
                 <div className="space-y-2">
@@ -216,6 +237,7 @@ export default function Dashboard() {
                     placeholder="Describe el propósito de este proyecto..."
                     value={newProject.description}
                     onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
+                    className="bg-background/50"
                   />
                 </div>
               </div>
@@ -234,10 +256,10 @@ export default function Dashboard() {
 
         {/* Search */}
         <div className="relative mb-6">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar proyectos..."
-            className="pl-10 max-w-md"
+            className="pl-11 max-w-md bg-card/50 border-border/50"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -249,19 +271,21 @@ export default function Dashboard() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : filteredProjects.length === 0 ? (
-          <Card className="glass">
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <FolderOpen className="h-16 w-16 text-muted-foreground/50 mb-4" />
+          <Card className="glass-strong">
+            <CardContent className="flex flex-col items-center justify-center py-16">
+              <div className="w-20 h-20 rounded-2xl bg-muted flex items-center justify-center mb-6">
+                <FolderOpen className="h-10 w-10 text-muted-foreground" />
+              </div>
               <h3 className="text-xl font-semibold mb-2">
                 {searchQuery ? 'No se encontraron proyectos' : 'No tienes proyectos aún'}
               </h3>
-              <p className="text-muted-foreground text-center mb-4">
+              <p className="text-muted-foreground text-center mb-6 max-w-md">
                 {searchQuery
                   ? 'Intenta con otra búsqueda'
                   : 'Crea tu primer proyecto para comenzar a usar RAGify'}
               </p>
               {!searchQuery && (
-                <Button onClick={() => setIsCreateOpen(true)} className="gradient-primary">
+                <Button onClick={() => setIsCreateOpen(true)} className="gradient-primary shadow-lg shadow-primary/25">
                   <Plus className="h-4 w-4 mr-2" />
                   Crear mi primer proyecto
                 </Button>
@@ -273,15 +297,15 @@ export default function Dashboard() {
             {filteredProjects.map((project, index) => (
               <Card
                 key={project.id}
-                className="glass hover:shadow-lg transition-all cursor-pointer group animate-fade-in"
+                className="glass group hover:shadow-xl hover:shadow-primary/10 transition-all duration-300 cursor-pointer hover:-translate-y-1 opacity-0 animate-fade-in"
                 style={{ animationDelay: `${index * 50}ms` }}
                 onClick={() => navigate(`/project/${project.id}`)}
               >
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-1">
-                      {project.name}
-                    </CardTitle>
+                    <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center mb-2 shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
+                      <Brain className="h-5 w-5 text-primary-foreground" />
+                    </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                         <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -312,20 +336,27 @@ export default function Dashboard() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-                  <CardDescription className="line-clamp-2">
+                  <CardTitle className="text-lg group-hover:text-primary transition-colors line-clamp-1">
+                    {project.name}
+                  </CardTitle>
+                  <CardDescription className="line-clamp-2 min-h-[40px]">
                     {project.description || 'Sin descripción'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1.5">
                       <FileText className="h-4 w-4" />
-                      <span>{project.document_count} documentos</span>
+                      <span>{project.document_count} docs</span>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      <span>{format(new Date(project.created_at), 'dd MMM', { locale: es })}</span>
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="h-4 w-4" />
+                      <span>{project.chunk_count} chunks</span>
                     </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                    <Calendar className="h-3 w-3" />
+                    <span>{format(new Date(project.created_at), "d 'de' MMM, yyyy", { locale: es })}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -336,7 +367,7 @@ export default function Dashboard() {
 
       {/* Edit dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
+        <DialogContent className="glass-strong">
           <DialogHeader>
             <DialogTitle>Editar proyecto</DialogTitle>
           </DialogHeader>
@@ -347,6 +378,7 @@ export default function Dashboard() {
                 id="edit-name"
                 value={editingProject?.name || ''}
                 onChange={(e) => setEditingProject(editingProject ? { ...editingProject, name: e.target.value } : null)}
+                className="bg-background/50"
               />
             </div>
             <div className="space-y-2">
@@ -355,6 +387,7 @@ export default function Dashboard() {
                 id="edit-description"
                 value={editingProject?.description || ''}
                 onChange={(e) => setEditingProject(editingProject ? { ...editingProject, description: e.target.value } : null)}
+                className="bg-background/50"
               />
             </div>
           </div>
@@ -370,5 +403,30 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number | string; color: string }) {
+  const colorClasses = {
+    primary: 'from-violet-500 to-purple-600',
+    accent: 'from-emerald-500 to-teal-600',
+    warning: 'from-amber-500 to-orange-600',
+    success: 'from-green-500 to-emerald-600',
+  };
+
+  return (
+    <Card className="glass overflow-hidden">
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} flex items-center justify-center shadow-lg`}>
+            <Icon className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold">{value}</p>
+            <p className="text-sm text-muted-foreground">{label}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
