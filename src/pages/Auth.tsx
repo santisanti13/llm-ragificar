@@ -192,7 +192,7 @@ export default function Auth() {
 
       {/* Right side - Auth form */}
       <div className="flex-1 flex items-center justify-center p-8 relative z-10">
-        <Card className="w-full max-w-md card-interactive glass animate-fade-in border-border/50">
+        <Card className="w-full max-w-md glass animate-fade-in border-border/50">
           <CardHeader className="text-center">
             <div className="lg:hidden flex items-center justify-center mb-4">
               <img src={logo} alt="RAGify" className="h-24 w-auto dark:hidden" />
