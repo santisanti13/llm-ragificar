@@ -28,16 +28,8 @@ export default function Index() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img 
-              src={logo} 
-              alt="RAGify" 
-              className="h-36 w-auto -my-8 dark:hidden drop-shadow-[0_0_10px_hsl(65,100%,50%,0.5)]" 
-            />
-            <img 
-              src={logoWhite} 
-              alt="RAGify" 
-              className="h-36 w-auto -my-8 hidden dark:block drop-shadow-[0_0_15px_hsl(65,100%,50%,0.6)]" 
-            />
+            <img src={logo} alt="RAGify" className="h-36 w-auto -my-8 dark:hidden drop-shadow-[0_0_10px_hsl(65,100%,50%,0.5)]" />
+            <img src={logoWhite} alt="RAGify" className="h-36 w-auto -my-8 hidden dark:block drop-shadow-[0_0_15px_hsl(65,100%,50%,0.6)]" />
           </div>
           
           <div className="hidden md:flex items-center gap-8">
@@ -81,8 +73,8 @@ export default function Index() {
             </div>
             
             {/* Headline - Clean and impactful */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight">Tu RAGify
-De PDF a API en segundos<br />
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight">Tu RAGify 
+APIs inteligentes al instante<br />
               <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent inline-block">
                 <RotatingText phrases={heroRotatingPhrases} interval={3500} className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent" />
               </span>
@@ -388,10 +380,7 @@ function HowItWorksCard({
   iconBg: string;
   highlighted?: boolean;
 }) {
-  return (
-    <div className={`group relative rounded-2xl p-[1px] transition-all duration-500 hover:scale-[1.02] ${
-      highlighted ? 'bg-gradient-to-b from-primary via-neon-green to-primary/50' : 'bg-gradient-to-b from-border to-border/50 hover:from-primary/50 hover:to-primary/20'
-    }`}>
+  return <div className={`group relative rounded-2xl p-[1px] transition-all duration-500 hover:scale-[1.02] ${highlighted ? 'bg-gradient-to-b from-primary via-neon-green to-primary/50' : 'bg-gradient-to-b from-border to-border/50 hover:from-primary/50 hover:to-primary/20'}`}>
       <div className={`relative h-full bg-card rounded-2xl p-6 lg:p-8 overflow-hidden`}>
         {/* Background glow */}
         <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
@@ -413,96 +402,69 @@ function HowItWorksCard({
           
           {/* Features list */}
           <ul className="space-y-2">
-            {features.map((feature, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm">
+            {features.map((feature, i) => <li key={i} className="flex items-center gap-2 text-sm">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                 <span className="text-foreground/80">{feature}</span>
-              </li>
-            ))}
+              </li>)}
           </ul>
         </div>
         
         {/* Decorative corner */}
         <div className="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl from-primary/5 to-transparent rounded-tl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
-    </div>
-  );
+    </div>;
 }
-
 function StaggeredCards() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.2 }
-    );
-
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setIsVisible(true);
+        observer.disconnect();
+      }
+    }, {
+      threshold: 0.2
+    });
     if (containerRef.current) {
       observer.observe(containerRef.current);
     }
-
     return () => observer.disconnect();
   }, []);
-
-  const cards = [
-    {
-      step: 1,
-      title: "Sube tu conocimiento",
-      description: "Arrastra PDFs, imágenes, Word, o pega URLs. Nosotros extraemos, limpiamos y vectorizamos automáticamente.",
-      icon: Upload,
-      features: ['PDFs, Word, imágenes', 'URLs y sitios web', 'Vectorización automática'],
-      gradient: "from-blue-500/20 via-cyan-500/20 to-teal-500/20",
-      iconBg: "bg-gradient-to-br from-blue-500 to-cyan-500"
-    },
-    {
-      step: 2,
-      title: "Entrena el comportamiento",
-      description: "Define cómo debe responder tu asistente con prompts personalizados y ejemplos de Q&A.",
-      icon: Brain,
-      features: ['System prompt custom', 'Ejemplos Q&A', 'Tono y estilo únicos'],
-      gradient: "from-primary/20 via-neon-green/20 to-emerald-500/20",
-      iconBg: "bg-gradient-to-br from-primary to-neon-green",
-      highlighted: true
-    },
-    {
-      step: 3,
-      title: "Integra tu API",
-      description: "Copia tu endpoint y API key. Haz tu primera query en segundos con cualquier lenguaje.",
-      icon: Rocket,
-      features: ['API REST simple', 'Streaming opcional', 'SDKs disponibles'],
-      gradient: "from-violet-500/20 via-purple-500/20 to-fuchsia-500/20",
-      iconBg: "bg-gradient-to-br from-violet-500 to-purple-500"
-    }
-  ];
-
-  return (
-    <div ref={containerRef} className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
-      {cards.map((card, index) => (
-        <div
-          key={card.step}
-          className={`transition-all duration-700 ease-out ${
-            isVisible 
-              ? 'opacity-100 translate-y-0' 
-              : 'opacity-0 translate-y-12'
-          }`}
-          style={{ 
-            transitionDelay: isVisible ? `${index * 150}ms` : '0ms'
-          }}
-        >
+  const cards = [{
+    step: 1,
+    title: "Sube tu conocimiento",
+    description: "Arrastra PDFs, imágenes, Word, o pega URLs. Nosotros extraemos, limpiamos y vectorizamos automáticamente.",
+    icon: Upload,
+    features: ['PDFs, Word, imágenes', 'URLs y sitios web', 'Vectorización automática'],
+    gradient: "from-blue-500/20 via-cyan-500/20 to-teal-500/20",
+    iconBg: "bg-gradient-to-br from-blue-500 to-cyan-500"
+  }, {
+    step: 2,
+    title: "Entrena el comportamiento",
+    description: "Define cómo debe responder tu asistente con prompts personalizados y ejemplos de Q&A.",
+    icon: Brain,
+    features: ['System prompt custom', 'Ejemplos Q&A', 'Tono y estilo únicos'],
+    gradient: "from-primary/20 via-neon-green/20 to-emerald-500/20",
+    iconBg: "bg-gradient-to-br from-primary to-neon-green",
+    highlighted: true
+  }, {
+    step: 3,
+    title: "Integra tu API",
+    description: "Copia tu endpoint y API key. Haz tu primera query en segundos con cualquier lenguaje.",
+    icon: Rocket,
+    features: ['API REST simple', 'Streaming opcional', 'SDKs disponibles'],
+    gradient: "from-violet-500/20 via-purple-500/20 to-fuchsia-500/20",
+    iconBg: "bg-gradient-to-br from-violet-500 to-purple-500"
+  }];
+  return <div ref={containerRef} className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+      {cards.map((card, index) => <div key={card.step} className={`transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`} style={{
+      transitionDelay: isVisible ? `${index * 150}ms` : '0ms'
+    }}>
           <HowItWorksCard {...card} />
-        </div>
-      ))}
-    </div>
-  );
+        </div>)}
+    </div>;
 }
-
 function PricingCard({
   name,
   price,
