@@ -175,10 +175,11 @@ export default function Dashboard() {
       {/* Header */}
       <header className="relative border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center">
+          <div className="flex-1" />
+          <div className="absolute left-1/2 -translate-x-1/2">
             <img src={logo} alt="RAGify" className="h-24 w-auto -my-6" />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-1 justify-end">
             <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
             <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
               <LogOut className="h-4 w-4 mr-2" />
