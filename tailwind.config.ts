@@ -70,6 +70,10 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        neon: {
+          yellow: "hsl(var(--neon-yellow))",
+          green: "hsl(var(--neon-green))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -123,6 +127,10 @@ export default {
           "0%, 100%": { backgroundPosition: "0% 50%" },
           "50%": { backgroundPosition: "100% 50%" },
         },
+        "neon-pulse": {
+          "0%, 100%": { boxShadow: "0 0 20px hsl(65 100% 50% / 0.4)" },
+          "50%": { boxShadow: "0 0 40px hsl(65 100% 50% / 0.6), 0 0 60px hsl(80 100% 50% / 0.3)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -136,11 +144,13 @@ export default {
         "pulse-soft": "pulse-soft 2.5s ease-in-out infinite",
         "bounce-subtle": "bounce-subtle 2s ease-in-out infinite",
         "gradient-shift": "gradient-shift 3s ease infinite",
+        "neon-pulse": "neon-pulse 2s ease-in-out infinite",
       },
       boxShadow: {
-        'glow': '0 0 40px hsl(var(--primary) / 0.15)',
-        'glow-lg': '0 0 60px hsl(var(--primary) / 0.2)',
-        'inner-glow': 'inset 0 0 40px hsl(var(--primary) / 0.1)',
+        'glow': '0 0 40px hsl(65 100% 50% / 0.2)',
+        'glow-lg': '0 0 60px hsl(65 100% 50% / 0.3)',
+        'glow-neon': '0 0 40px hsl(65 100% 50% / 0.4), 0 0 80px hsl(80 100% 50% / 0.2)',
+        'inner-glow': 'inset 0 0 40px hsl(65 100% 50% / 0.1)',
       },
       backgroundSize: {
         '200%': '200% 200%',
