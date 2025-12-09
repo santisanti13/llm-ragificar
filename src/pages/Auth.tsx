@@ -191,7 +191,7 @@ export default function Auth() {
       </div>
 
       {/* Right side - Auth form */}
-      <div className="flex-1 flex items-center justify-center p-8 relative">
+      <div className="flex-1 flex items-center justify-center p-8 relative z-10">
         <Card className="w-full max-w-md card-interactive glass animate-fade-in border-border/50">
           <CardHeader className="text-center">
             <div className="lg:hidden flex items-center justify-center mb-4">
