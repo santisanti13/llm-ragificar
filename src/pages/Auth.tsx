@@ -196,9 +196,9 @@ export default function Auth() {
           <CardHeader className="text-center">
             <div className="lg:hidden flex items-center justify-center mb-6 relative">
               {/* Neon glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-neon-green/40 to-primary/30 blur-3xl rounded-full scale-150 animate-pulse" />
-              <img src={logo} alt="RAGify" className="h-36 w-auto dark:hidden relative z-10 drop-shadow-[0_0_20px_hsl(65,100%,50%,0.5)]" />
-              <img src={logoWhite} alt="RAGify" className="h-36 w-auto hidden dark:block relative z-10 drop-shadow-[0_0_25px_hsl(65,100%,50%,0.6)]" />
+              <div className="absolute w-20 h-20 bg-primary/20 blur-xl rounded-full" />
+              <img src={logo} alt="RAGify" className="h-36 w-auto dark:hidden relative z-10" />
+              <img src={logoWhite} alt="RAGify" className="h-36 w-auto hidden dark:block relative z-10 drop-shadow-[0_0_15px_hsl(65,100%,50%,0.4)]" />
             </div>
             {mode === 'reset' ? (
               <>
