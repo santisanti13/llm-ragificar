@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, FolderOpen, Loader2, LogOut, Search, Calendar, FileText, MoreVertical, Pencil, Trash2, Sparkles, MessageSquare, ArrowRight, ChevronRight } from 'lucide-react';
+import { Plus, FolderOpen, Loader2, LogOut, Search, Calendar, FileText, MoreVertical, Pencil, Trash2, Sparkles, MessageSquare, ArrowRight, ChevronRight, BarChart3 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -35,6 +35,7 @@ export default function Dashboard() {
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [newProject, setNewProject] = useState({ name: '', description: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [totalApiQueries, setTotalApiQueries] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -45,8 +46,20 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       fetchProjects();
+      fetchApiQueryCount();
     }
   }, [user]);
+
+  const fetchApiQueryCount = async () => {
+    try {
+      const { count } = await supabase
+        .from('api_query_logs')
+        .select('*', { count: 'exact', head: true });
+      setTotalApiQueries(count || 0);
+    } catch (error) {
+      console.error('Error fetching API query count:', error);
+    }
+  };
 
   const fetchProjects = async () => {
     try {
@@ -218,12 +231,30 @@ export default function Dashboard() {
             value={totalChunks}
             trend="Embeddings"
           />
-          <StatCard 
-            icon={MessageSquare} 
-            label="Consultas API" 
-            value="-"
-            trend="Este periodo"
-          />
+          <div 
+            className="cursor-pointer transition-transform hover:scale-[1.02]"
+            onClick={() => navigate('/analytics')}
+          >
+            <StatCard 
+              icon={MessageSquare} 
+              label="Consultas API" 
+              value={totalApiQueries}
+              trend="Ver analytics →"
+            />
+          </div>
+        </div>
+
+        {/* Analytics Quick Link */}
+        <div className="mb-8">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate('/analytics')}
+            className="border-border hover:bg-accent"
+          >
+            <BarChart3 className="w-4 h-4 mr-2" />
+            Ver Dashboard de Analytics
+            <ChevronRight className="w-4 h-4 ml-2" />
+          </Button>
         </div>
 
         {/* Section header with actions */}
