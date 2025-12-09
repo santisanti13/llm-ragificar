@@ -42,6 +42,9 @@ export default function Index() {
             <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors link-underline">
               Precios
             </a>
+            <button onClick={() => navigate('/docs')} className="text-sm text-muted-foreground hover:text-foreground transition-colors link-underline">
+              Documentación
+            </button>
           </div>
 
           <div className="flex items-center gap-3">
