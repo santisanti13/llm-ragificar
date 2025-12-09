@@ -74,7 +74,7 @@ export default function Index() {
             
             {/* Headline - Clean and impactful */}
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-[1.1] tracking-tight">
-              Tu <span className="bg-gradient-to-r from-primary via-neon-green to-primary bg-clip-text text-transparent">RAGify</span>
+              Tu <span className="text-foreground">RAGify</span>
             </h1>
             
             <div className="text-2xl md:text-3xl font-semibold mb-6 h-10">
