@@ -9,10 +9,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
-import { Plus, FolderOpen, Loader2, LogOut, Brain, Search, Calendar, FileText, MoreVertical, Pencil, Trash2, Sparkles, MessageSquare, ArrowRight, ChevronRight } from 'lucide-react';
+import { Plus, FolderOpen, Loader2, LogOut, Search, Calendar, FileText, MoreVertical, Pencil, Trash2, Sparkles, MessageSquare, ArrowRight, ChevronRight } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import logo from '@/assets/logo.png';
 
 interface Project {
   id: string;
@@ -174,11 +175,8 @@ export default function Dashboard() {
       {/* Header */}
       <header className="relative border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center">
-              <Brain className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold">RAGify</span>
+          <div className="flex items-center">
+            <img src={logo} alt="RAGify" className="h-16 w-auto -my-2" />
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
@@ -427,8 +425,8 @@ function ProjectCard({
     >
       {/* Header */}
       <div className="flex items-start justify-between mb-4">
-        <div className="w-11 h-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-          <Brain className="h-5 w-5" />
+        <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center p-2">
+          <img src={logo} alt="" className="w-full h-full object-contain" />
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
