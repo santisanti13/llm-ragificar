@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader2, Zap, Shield, Code, FileText, Bot, Layers, Terminal, Play, Check, ChevronRight, Sparkles, Database, Lock, Globe, Upload, Brain, Rocket } from 'lucide-react';
+import { ArrowRight, Loader2, Zap, Shield, Code, FileText, Bot, Layers, Terminal, Play, Check, ChevronRight, Sparkles, Database, Lock, Globe, Upload, Brain, Rocket, Menu, X } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import logoWhite from '@/assets/logo-white.png';
 import logoHero from '@/assets/logo-hero.png';
@@ -11,6 +11,7 @@ import { RotatingText } from '@/components/RotatingText';
 const heroRotatingPhrases = ['Tu IA a medida en minutos', 'RAG sin infraestructura', 'APIs inteligentes al instante', 'Tu conocimiento, automatizado', 'Chatbots con tu contenido', 'Búsqueda semántica potente', 'Respuestas precisas, siempre', 'De PDF a API en segundos', 'IA contextual sin código', 'Tu asistente personalizado'];
 export default function Index() {
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const {
     user,
     loading
@@ -28,10 +29,10 @@ export default function Index() {
   return <div className="min-h-screen bg-background">
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img src={logo} alt="RAGify" className="h-36 w-auto -my-8 dark:hidden drop-shadow-[0_0_10px_hsl(65,100%,50%,0.5)]" />
-            <img src={logoWhite} alt="RAGify" className="h-36 w-auto -my-8 hidden dark:block drop-shadow-[0_0_15px_hsl(65,100%,50%,0.6)]" />
+            <img src={logo} alt="RAGify" className="h-28 md:h-36 w-auto -my-8 dark:hidden drop-shadow-[0_0_10px_hsl(65,100%,50%,0.5)]" />
+            <img src={logoWhite} alt="RAGify" className="h-28 md:h-36 w-auto -my-8 hidden dark:block drop-shadow-[0_0_15px_hsl(65,100%,50%,0.6)]" />
           </div>
           
           <div className="hidden md:flex items-center gap-8">
@@ -49,16 +50,68 @@ export default function Index() {
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <Button variant="ghost" size="sm" onClick={() => navigate('/auth')} className="hidden sm:flex">
               Iniciar sesión
             </Button>
-            <Button size="sm" onClick={() => navigate('/auth')} className="gradient-primary">
-              Empezar gratis
-              <ArrowRight className="ml-1.5 h-4 w-4" />
+            <Button size="sm" onClick={() => navigate('/auth')} className="gradient-primary text-xs md:text-sm px-3 md:px-4">
+              <span className="hidden sm:inline">Empezar gratis</span>
+              <span className="sm:hidden">Empezar</span>
+              <ArrowRight className="ml-1 h-3 w-3 md:h-4 md:w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden" 
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-background/95 backdrop-blur-lg border-b border-border animate-fade-in">
+            <div className="container mx-auto px-4 py-4 flex flex-col gap-4">
+              <a 
+                href="#features" 
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Características
+              </a>
+              <a 
+                href="#how-it-works" 
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Cómo funciona
+              </a>
+              <a 
+                href="#pricing" 
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Precios
+              </a>
+              <button 
+                onClick={() => { navigate('/docs'); setMobileMenuOpen(false); }} 
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors py-2 text-left"
+              >
+                Documentación
+              </button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => { navigate('/auth'); setMobileMenuOpen(false); }} 
+                className="w-full mt-2"
+              >
+                Iniciar sesión
+              </Button>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
