@@ -181,12 +181,6 @@ De PDF a API en segundos<br />
           </div>
 
           <StaggeredCards />
-        
-
-          {/* Connection line for desktop */}
-          <div className="hidden md:block absolute top-[60%] left-1/2 -translate-x-1/2 w-[calc(66%-4rem)] h-[2px]">
-            <div className="w-full h-full bg-gradient-to-r from-blue-500/50 via-primary/50 to-violet-500/50" />
-          </div>
         </div>
       </section>
 
