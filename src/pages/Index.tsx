@@ -27,7 +27,7 @@ export default function Index() {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img src={logo} alt="RAGify" className="h-28 w-auto -my-6" />
+            <img src={logo} alt="RAGify" className="h-36 w-auto -my-10" />
           </div>
           
           <div className="hidden md:flex items-center gap-8">
