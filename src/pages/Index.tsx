@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -180,36 +180,8 @@ De PDF a API en segundos<br />
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
-            <HowItWorksCard 
-              step={1}
-              title="Sube tu conocimiento"
-              description="Arrastra PDFs, imágenes, Word, o pega URLs. Nosotros extraemos, limpiamos y vectorizamos automáticamente."
-              icon={Upload}
-              features={['PDFs, Word, imágenes', 'URLs y sitios web', 'Vectorización automática']}
-              gradient="from-blue-500/20 via-cyan-500/20 to-teal-500/20"
-              iconBg="bg-gradient-to-br from-blue-500 to-cyan-500"
-            />
-            <HowItWorksCard 
-              step={2}
-              title="Entrena el comportamiento"
-              description="Define cómo debe responder tu asistente con prompts personalizados y ejemplos de Q&A."
-              icon={Brain}
-              features={['System prompt custom', 'Ejemplos Q&A', 'Tono y estilo únicos']}
-              gradient="from-primary/20 via-neon-green/20 to-emerald-500/20"
-              iconBg="bg-gradient-to-br from-primary to-neon-green"
-              highlighted
-            />
-            <HowItWorksCard 
-              step={3}
-              title="Integra tu API"
-              description="Copia tu endpoint y API key. Haz tu primera query en segundos con cualquier lenguaje."
-              icon={Rocket}
-              features={['API REST simple', 'Streaming opcional', 'SDKs disponibles']}
-              gradient="from-violet-500/20 via-purple-500/20 to-fuchsia-500/20"
-              iconBg="bg-gradient-to-br from-violet-500 to-purple-500"
-            />
-          </div>
+          <StaggeredCards />
+        
 
           {/* Connection line for desktop */}
           <div className="hidden md:block absolute top-[60%] left-1/2 -translate-x-1/2 w-[calc(66%-4rem)] h-[2px]">
@@ -454,6 +426,81 @@ function HowItWorksCard({
     </div>
   );
 }
+
+function StaggeredCards() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.2 }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  const cards = [
+    {
+      step: 1,
+      title: "Sube tu conocimiento",
+      description: "Arrastra PDFs, imágenes, Word, o pega URLs. Nosotros extraemos, limpiamos y vectorizamos automáticamente.",
+      icon: Upload,
+      features: ['PDFs, Word, imágenes', 'URLs y sitios web', 'Vectorización automática'],
+      gradient: "from-blue-500/20 via-cyan-500/20 to-teal-500/20",
+      iconBg: "bg-gradient-to-br from-blue-500 to-cyan-500"
+    },
+    {
+      step: 2,
+      title: "Entrena el comportamiento",
+      description: "Define cómo debe responder tu asistente con prompts personalizados y ejemplos de Q&A.",
+      icon: Brain,
+      features: ['System prompt custom', 'Ejemplos Q&A', 'Tono y estilo únicos'],
+      gradient: "from-primary/20 via-neon-green/20 to-emerald-500/20",
+      iconBg: "bg-gradient-to-br from-primary to-neon-green",
+      highlighted: true
+    },
+    {
+      step: 3,
+      title: "Integra tu API",
+      description: "Copia tu endpoint y API key. Haz tu primera query en segundos con cualquier lenguaje.",
+      icon: Rocket,
+      features: ['API REST simple', 'Streaming opcional', 'SDKs disponibles'],
+      gradient: "from-violet-500/20 via-purple-500/20 to-fuchsia-500/20",
+      iconBg: "bg-gradient-to-br from-violet-500 to-purple-500"
+    }
+  ];
+
+  return (
+    <div ref={containerRef} className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+      {cards.map((card, index) => (
+        <div
+          key={card.step}
+          className={`transition-all duration-700 ease-out ${
+            isVisible 
+              ? 'opacity-100 translate-y-0' 
+              : 'opacity-0 translate-y-12'
+          }`}
+          style={{ 
+            transitionDelay: isVisible ? `${index * 150}ms` : '0ms'
+          }}
+        >
+          <HowItWorksCard {...card} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PricingCard({
   name,
   price,
