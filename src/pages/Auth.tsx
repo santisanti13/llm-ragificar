@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { Loader2, Brain, Sparkles, FileText, MessageSquare, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Loader2, Sparkles, FileText, MessageSquare, ArrowLeft, CheckCircle } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import logo from '@/assets/logo.png';
 
 const authSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -42,7 +43,6 @@ export default function Auth() {
   const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
-    // Check if user arrived from password reset email
     const isReset = searchParams.get('reset') === 'true';
     if (isReset) {
       setMode('reset');
@@ -124,7 +124,6 @@ export default function Auth() {
       } else {
         setResetSuccess(true);
         toast.success('¡Contraseña actualizada correctamente!');
-        // Clear URL params
         window.history.replaceState({}, '', '/auth');
         setTimeout(() => {
           setMode('login');
@@ -141,26 +140,32 @@ export default function Auth() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="fixed inset-0 bg-dots opacity-50 pointer-events-none" />
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen gradient-surface flex">
+    <div className="min-h-screen bg-background flex">
+      {/* Subtle background pattern */}
+      <div className="fixed inset-0 bg-dots opacity-50 pointer-events-none" />
+      
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 gradient-primary p-12 flex-col justify-between">
-        <div>
-          <h1 className="text-4xl font-display font-bold text-primary-foreground flex items-center gap-3">
-            <Brain className="h-10 w-10" />
-            RAGify
-          </h1>
-          <p className="mt-2 text-primary-foreground/80 text-lg">
-            Tu plataforma de RAG inteligente
+      <div className="hidden lg:flex lg:w-1/2 relative p-12 flex-col justify-between border-r border-border">
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+        
+        <div className="relative">
+          <div className="flex items-center">
+            <img src={logo} alt="RAGify" className="h-24 w-auto -my-6" />
+          </div>
+          <p className="mt-4 text-muted-foreground text-lg max-w-md">
+            Tu plataforma de RAG inteligente para potenciar tus aplicaciones con IA contextual.
           </p>
         </div>
         
-        <div className="space-y-8">
+        <div className="relative space-y-6">
           <FeatureItem 
             icon={FileText} 
             title="Sube tus documentos"
@@ -178,18 +183,17 @@ export default function Auth() {
           />
         </div>
 
-        <p className="text-primary-foreground/60 text-sm">
-          © 2024 RAGify. Construido con Lovable.
+        <p className="relative text-muted-foreground text-sm">
+          © 2025 RAGify. Construido con Lovable.
         </p>
       </div>
 
       {/* Right side - Auth form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <Card className="w-full max-w-md glass animate-fade-in">
+      <div className="flex-1 flex items-center justify-center p-8 relative">
+        <Card className="w-full max-w-md card-interactive glass animate-fade-in border-border/50">
           <CardHeader className="text-center">
-            <div className="lg:hidden flex items-center justify-center gap-2 mb-4">
-              <Brain className="h-8 w-8 text-primary" />
-              <span className="text-2xl font-display font-bold">RAGify</span>
+            <div className="lg:hidden flex items-center justify-center mb-4">
+              <img src={logo} alt="RAGify" className="h-16 w-auto" />
             </div>
             {mode === 'reset' ? (
               <>
@@ -218,7 +222,9 @@ export default function Auth() {
             {mode === 'reset' ? (
               resetSuccess ? (
                 <div className="text-center py-8 space-y-4">
-                  <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+                  <div className="w-16 h-16 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
+                    <CheckCircle className="h-8 w-8 text-green-500" />
+                  </div>
                   <p className="text-lg font-medium">¡Contraseña actualizada!</p>
                   <p className="text-muted-foreground">Redirigiendo al login...</p>
                 </div>
@@ -232,6 +238,7 @@ export default function Auth() {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      className="bg-background/50 border-border/50 focus:border-primary/50"
                       required
                     />
                   </div>
@@ -243,12 +250,13 @@ export default function Auth() {
                       placeholder="••••••••"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="bg-background/50 border-border/50 focus:border-primary/50"
                       required
                     />
                   </div>
                   <Button 
                     onClick={handleResetPassword} 
-                    className="w-full gradient-primary" 
+                    className="w-full gradient-primary text-primary-foreground" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -262,7 +270,7 @@ export default function Auth() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setMode('login')}
-                  className="mb-2 -ml-2"
+                  className="mb-2 -ml-2 text-muted-foreground hover:text-foreground"
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
                   Volver
@@ -275,12 +283,13 @@ export default function Auth() {
                     placeholder="tu@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    className="bg-background/50 border-border/50 focus:border-primary/50"
                     required
                   />
                 </div>
                 <Button 
                   onClick={handleForgotPassword} 
-                  className="w-full gradient-primary" 
+                  className="w-full gradient-primary text-primary-foreground" 
                   disabled={isSubmitting}
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -289,9 +298,9 @@ export default function Auth() {
               </div>
             ) : (
               <Tabs defaultValue="signin" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="signin">Iniciar sesión</TabsTrigger>
-                  <TabsTrigger value="signup">Registrarse</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50">
+                  <TabsTrigger value="signin" className="data-[state=active]:bg-background">Iniciar sesión</TabsTrigger>
+                  <TabsTrigger value="signup" className="data-[state=active]:bg-background">Registrarse</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="signin">
@@ -304,6 +313,7 @@ export default function Auth() {
                         placeholder="tu@email.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        className="bg-background/50 border-border/50 focus:border-primary/50"
                         required
                       />
                     </div>
@@ -315,17 +325,18 @@ export default function Auth() {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        className="bg-background/50 border-border/50 focus:border-primary/50"
                         required
                       />
                     </div>
-                    <Button type="submit" className="w-full gradient-primary" disabled={isSubmitting}>
+                    <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={isSubmitting}>
                       {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       Iniciar sesión
                     </Button>
                     <Button
                       type="button"
                       variant="link"
-                      className="w-full text-muted-foreground"
+                      className="w-full text-muted-foreground hover:text-foreground"
                       onClick={() => setMode('forgot')}
                     >
                       ¿Olvidaste tu contraseña?
@@ -343,6 +354,7 @@ export default function Auth() {
                         placeholder="tu@email.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
+                        className="bg-background/50 border-border/50 focus:border-primary/50"
                         required
                       />
                     </div>
@@ -354,10 +366,11 @@ export default function Auth() {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        className="bg-background/50 border-border/50 focus:border-primary/50"
                         required
                       />
                     </div>
-                    <Button type="submit" className="w-full gradient-primary" disabled={isSubmitting}>
+                    <Button type="submit" className="w-full gradient-primary text-primary-foreground" disabled={isSubmitting}>
                       {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                       Crear cuenta
                     </Button>
@@ -374,13 +387,13 @@ export default function Auth() {
 
 function FeatureItem({ icon: Icon, title, description }: { icon: any; title: string; description: string }) {
   return (
-    <div className="flex gap-4">
-      <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary-foreground/10 flex items-center justify-center">
-        <Icon className="h-6 w-6 text-primary-foreground" />
+    <div className="flex gap-4 p-4 rounded-xl bg-card/50 border border-border/50 card-interactive">
+      <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+        <Icon className="h-6 w-6 text-primary" />
       </div>
       <div>
-        <h3 className="font-semibold text-primary-foreground">{title}</h3>
-        <p className="text-primary-foreground/70 text-sm">{description}</p>
+        <h3 className="font-semibold text-foreground">{title}</h3>
+        <p className="text-muted-foreground text-sm">{description}</p>
       </div>
     </div>
   );

@@ -176,7 +176,7 @@ export default function Dashboard() {
       <header className="relative border-b border-border bg-background/80 backdrop-blur-lg sticky top-0 z-50">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center">
-            <img src={logo} alt="RAGify" className="h-16 w-auto -my-2" />
+            <img src={logo} alt="RAGify" className="h-24 w-auto -my-6" />
           </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
