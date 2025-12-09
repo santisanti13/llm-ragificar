@@ -12,6 +12,11 @@ const heroRotatingPhrases = [
   'APIs inteligentes al instante',
   'Tu conocimiento, automatizado',
   'Chatbots con tu contenido',
+  'Búsqueda semántica potente',
+  'Respuestas precisas, siempre',
+  'De PDF a API en segundos',
+  'IA contextual sin código',
+  'Tu asistente personalizado',
 ];
 
 export default function Index() {
