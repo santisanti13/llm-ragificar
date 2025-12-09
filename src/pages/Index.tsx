@@ -77,7 +77,7 @@ export default function Index() {
               Tu <span className="text-foreground">RAGify</span>
             </h1>
             
-            <div className="text-2xl md:text-3xl font-semibold mb-6 h-10">
+            <div className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 h-12 md:h-14">
               <RotatingText 
                 phrases={heroRotatingPhrases} 
                 interval={3500} 
