@@ -50,10 +50,10 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
-    // Verify project exists (API key validation would go here in production)
+    // Verify project exists and get user_id for logging
     const { data: project, error: projectError } = await supabaseClient
       .from("projects")
-      .select("id, name")
+      .select("id, name, user_id")
       .eq("id", project_id)
       .single();
 
@@ -63,6 +63,8 @@ serve(async (req) => {
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const userId = project.user_id;
 
     // Fetch training config, examples, and document chunks in parallel
     const [trainingRes, examplesRes, chunksRes] = await Promise.all([
@@ -152,8 +154,21 @@ serve(async (req) => {
     const aiResponse = await response.json();
     const assistantMessage = aiResponse.choices?.[0]?.message?.content || "Could not generate a response.";
     const usage = aiResponse.usage || {};
+    const totalTokens = usage.total_tokens || 0;
 
     console.log(`API response generated in ${latencyMs}ms`);
+
+    // Log the query for analytics
+    const queryText = query || (messages && messages.length > 0 ? messages[messages.length - 1].content : "");
+    await supabaseClient.from("api_query_logs").insert({
+      project_id,
+      user_id: userId,
+      query: queryText.substring(0, 1000),
+      response_preview: assistantMessage.substring(0, 200),
+      tokens_used: totalTokens,
+      latency_ms: latencyMs,
+      status: "success"
+    });
 
     return new Response(
       JSON.stringify({
@@ -167,7 +182,7 @@ serve(async (req) => {
           usage: {
             prompt_tokens: usage.prompt_tokens || 0,
             completion_tokens: usage.completion_tokens || 0,
-            total_tokens: usage.total_tokens || 0,
+            total_tokens: totalTokens,
           }
         }
       }),
