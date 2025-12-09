@@ -62,7 +62,7 @@ export default function Index() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 md:pt-40 md:pb-32 relative overflow-hidden">
+      <section className="pt-24 pb-20 md:pt-28 md:pb-32 relative overflow-hidden">
         {/* Subtle background grid */}
         <div className="absolute inset-0 bg-grid opacity-50" />
         
@@ -75,7 +75,7 @@ export default function Index() {
             
             
             {/* Logo as headline */}
-            <div className="mb-8 flex justify-center">
+            <div className="mb-4 flex justify-center">
               <img 
                 src={logoHeroSf} 
                 alt="RAGify" 
