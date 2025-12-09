@@ -74,8 +74,9 @@ export default function Index() {
             
             {/* Logo as headline */}
             <div className="mb-8 flex justify-center">
-              <img src={logo} alt="RAGify" className="h-32 md:h-40 lg:h-48 w-auto dark:hidden drop-shadow-[0_0_20px_hsl(65,100%,50%,0.4)]" />
-              <img src={logoWhite} alt="RAGify" className="h-32 md:h-40 lg:h-48 w-auto hidden dark:block drop-shadow-[0_0_25px_hsl(65,100%,50%,0.5)]" />
+              <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold bg-gradient-to-r from-primary via-neon-green to-primary bg-clip-text text-transparent drop-shadow-[0_0_30px_hsl(65,100%,50%,0.4)]">
+                RAGify
+              </h1>
             </div>
             
             <div className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 h-12 md:h-14">
