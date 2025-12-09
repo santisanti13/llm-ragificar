@@ -11,6 +11,7 @@ import { Loader2, Sparkles, FileText, MessageSquare, ArrowLeft, CheckCircle } fr
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
 import logo from '@/assets/logo.png';
+import logoWhite from '@/assets/logo-white.png';
 
 const authSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -158,7 +159,8 @@ export default function Auth() {
         
         <div className="relative">
           <div className="flex items-center">
-            <img src={logo} alt="RAGify" className="h-24 w-auto -my-6" />
+            <img src={logo} alt="RAGify" className="h-24 w-auto -my-6 dark:hidden" />
+            <img src={logoWhite} alt="RAGify" className="h-24 w-auto -my-6 hidden dark:block" />
           </div>
           <p className="mt-4 text-muted-foreground text-lg max-w-md">
             Tu plataforma de RAG inteligente para potenciar tus aplicaciones con IA contextual.
@@ -193,7 +195,8 @@ export default function Auth() {
         <Card className="w-full max-w-md card-interactive glass animate-fade-in border-border/50">
           <CardHeader className="text-center">
             <div className="lg:hidden flex items-center justify-center mb-4">
-              <img src={logo} alt="RAGify" className="h-16 w-auto" />
+              <img src={logo} alt="RAGify" className="h-16 w-auto dark:hidden" />
+              <img src={logoWhite} alt="RAGify" className="h-16 w-auto hidden dark:block" />
             </div>
             {mode === 'reset' ? (
               <>
