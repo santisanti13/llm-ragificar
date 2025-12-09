@@ -24,16 +24,15 @@ export function RotatingText({ phrases, interval = 3000, className = '' }: Rotat
   }, [phrases.length, interval]);
 
   return (
-    <span className={`inline-block relative ${className}`}>
-      <span
-        className={`inline-block transition-all duration-300 ${
-          isAnimating 
-            ? 'opacity-0 translate-y-4' 
-            : 'opacity-100 translate-y-0'
-        }`}
-      >
-        {phrases[currentIndex]}
-      </span>
+    <span
+      className={`transition-all duration-300 ${
+        isAnimating 
+          ? 'opacity-0 translate-y-4' 
+          : 'opacity-100 translate-y-0'
+      } ${className}`}
+      style={{ display: 'inline-block' }}
+    >
+      {phrases[currentIndex]}
     </span>
   );
 }
