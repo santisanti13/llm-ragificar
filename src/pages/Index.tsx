@@ -73,10 +73,10 @@ export default function Index() {
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-8">RAG´s a Service para todos
           </div>
             
-            {/* Headline - Clean and impactful */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 leading-[1.1] tracking-tight">
-              Tu <span className="text-foreground">RAGify</span>
-            </h1>
+            {/* Logo as headline */}
+            <div className="mb-4 flex justify-center">
+              <img src={logoWhite} alt="RAGify" className="h-16 md:h-20 lg:h-24" />
+            </div>
             
             <div className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 h-12 md:h-14">
               <RotatingText phrases={heroRotatingPhrases} interval={3500} className="bg-gradient-to-r from-primary via-neon-green to-primary bg-clip-text text-transparent" />
