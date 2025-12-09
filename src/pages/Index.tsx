@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Loader2, Zap, Shield, Code, FileText, Bot, Layers, Terminal, Play, Check, ChevronRight, Sparkles, Database, Lock, Globe } from 'lucide-react';
+import { ArrowRight, Loader2, Zap, Shield, Code, FileText, Bot, Layers, Terminal, Play, Check, ChevronRight, Sparkles, Database, Lock, Globe, Upload, Brain, Rocket } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import logoWhite from '@/assets/logo-white.png';
 import { RotatingText } from '@/components/RotatingText';
@@ -160,21 +160,60 @@ De PDF a API en segundos<br />
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="py-24 md:py-32 bg-muted/30">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="text-primary font-medium mb-3">CÓMO FUNCIONA</p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              De cero a API en 3 pasos
+      <section id="how-it-works" className="py-24 md:py-32 relative overflow-hidden">
+        {/* Background decoration */}
+        <div className="absolute inset-0 bg-gradient-to-b from-background via-muted/30 to-background" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-3xl" />
+        
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-primary font-medium text-sm">CÓMO FUNCIONA</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              De cero a API en{' '}
+              <span className="text-gradient">3 simples pasos</span>
             </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Sin infraestructura. Sin configuración compleja. Solo sube, entrena e integra.
+            </p>
           </div>
 
-          <div className="max-w-4xl mx-auto">
-            <div className="grid gap-8">
-              <StepCard number="01" title="Sube tu conocimiento" description="Arrastra PDFs, imágenes, Word, o pega URLs. Nosotros extraemos, limpiamos y vectorizamos el contenido automáticamente." icon={FileText} />
-              <StepCard number="02" title="Entrena el comportamiento" description="Define cómo debe responder tu asistente. Añade un system prompt y ejemplos de respuestas ideales para tu caso de uso." icon={Bot} />
-              <StepCard number="03" title="Integra tu API" description="Copia tu endpoint y API key. Haz tu primera query en segundos. Ya tienes RAG en tu aplicación." icon={Code} />
-            </div>
+          <div className="grid md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+            <HowItWorksCard 
+              step={1}
+              title="Sube tu conocimiento"
+              description="Arrastra PDFs, imágenes, Word, o pega URLs. Nosotros extraemos, limpiamos y vectorizamos automáticamente."
+              icon={Upload}
+              features={['PDFs, Word, imágenes', 'URLs y sitios web', 'Vectorización automática']}
+              gradient="from-blue-500/20 via-cyan-500/20 to-teal-500/20"
+              iconBg="bg-gradient-to-br from-blue-500 to-cyan-500"
+            />
+            <HowItWorksCard 
+              step={2}
+              title="Entrena el comportamiento"
+              description="Define cómo debe responder tu asistente con prompts personalizados y ejemplos de Q&A."
+              icon={Brain}
+              features={['System prompt custom', 'Ejemplos Q&A', 'Tono y estilo únicos']}
+              gradient="from-primary/20 via-neon-green/20 to-emerald-500/20"
+              iconBg="bg-gradient-to-br from-primary to-neon-green"
+              highlighted
+            />
+            <HowItWorksCard 
+              step={3}
+              title="Integra tu API"
+              description="Copia tu endpoint y API key. Haz tu primera query en segundos con cualquier lenguaje."
+              icon={Rocket}
+              features={['API REST simple', 'Streaming opcional', 'SDKs disponibles']}
+              gradient="from-violet-500/20 via-purple-500/20 to-fuchsia-500/20"
+              iconBg="bg-gradient-to-br from-violet-500 to-purple-500"
+            />
+          </div>
+
+          {/* Connection line for desktop */}
+          <div className="hidden md:block absolute top-[60%] left-1/2 -translate-x-1/2 w-[calc(66%-4rem)] h-[2px]">
+            <div className="w-full h-full bg-gradient-to-r from-blue-500/50 via-primary/50 to-violet-500/50" />
           </div>
         </div>
       </section>
@@ -356,28 +395,64 @@ function FeatureCard({
       </ul>
     </div>;
 }
-function StepCard({
-  number,
+function HowItWorksCard({
+  step,
   title,
   description,
-  icon: Icon
+  icon: Icon,
+  features,
+  gradient,
+  iconBg,
+  highlighted
 }: {
-  number: string;
+  step: number;
   title: string;
   description: string;
   icon: any;
+  features: string[];
+  gradient: string;
+  iconBg: string;
+  highlighted?: boolean;
 }) {
-  return <div className="flex gap-6 items-start">
-      <div className="flex-shrink-0">
-        <div className="w-14 h-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl font-bold">
-          {number}
+  return (
+    <div className={`group relative rounded-2xl p-[1px] transition-all duration-500 hover:scale-[1.02] ${
+      highlighted ? 'bg-gradient-to-b from-primary via-neon-green to-primary/50' : 'bg-gradient-to-b from-border to-border/50 hover:from-primary/50 hover:to-primary/20'
+    }`}>
+      <div className={`relative h-full bg-card rounded-2xl p-6 lg:p-8 overflow-hidden`}>
+        {/* Background glow */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`} />
+        
+        {/* Step number badge */}
+        <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+          <span className="text-sm font-bold text-muted-foreground">0{step}</span>
         </div>
+        
+        {/* Icon */}
+        <div className={`relative w-14 h-14 rounded-xl ${iconBg} flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300`}>
+          <Icon className="h-7 w-7 text-white" />
+        </div>
+        
+        {/* Content */}
+        <div className="relative">
+          <h3 className="font-bold text-xl mb-3 group-hover:text-primary transition-colors">{title}</h3>
+          <p className="text-muted-foreground text-sm leading-relaxed mb-5">{description}</p>
+          
+          {/* Features list */}
+          <ul className="space-y-2">
+            {features.map((feature, i) => (
+              <li key={i} className="flex items-center gap-2 text-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <span className="text-foreground/80">{feature}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        
+        {/* Decorative corner */}
+        <div className="absolute bottom-0 right-0 w-24 h-24 bg-gradient-to-tl from-primary/5 to-transparent rounded-tl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
-      <div className="flex-1 pt-1">
-        <h3 className="font-semibold text-xl mb-2">{title}</h3>
-        <p className="text-muted-foreground leading-relaxed">{description}</p>
-      </div>
-    </div>;
+    </div>
+  );
 }
 function PricingCard({
   name,
