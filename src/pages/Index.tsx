@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { 
-  Brain, ArrowRight, Loader2, Zap, Shield, Code, 
+  ArrowRight, Loader2, Zap, Shield, Code, 
   FileText, Bot, Layers, Terminal, Play, Check,
   ChevronRight, Sparkles, Database, Lock, Globe
 } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -31,11 +32,8 @@ export default function Index() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center">
-              <Brain className="h-5 w-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold">RAGify</span>
+          <div className="flex items-center">
+            <img src={logo} alt="RAGify" className="h-16 w-auto -my-2" />
           </div>
           
           <div className="hidden md:flex items-center gap-8">
@@ -73,26 +71,26 @@ export default function Index() {
         <div className="container mx-auto px-6 relative">
           <div className="max-w-4xl mx-auto text-center">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-8 opacity-0 animate-fade-in">
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-8">
               <Sparkles className="h-4 w-4" />
               RAG-as-a-Service para developers
             </div>
             
             {/* Headline - Clean and impactful */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight opacity-0 animate-fade-in-up stagger-1">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight">
               Tus documentos.
               <br />
               <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">Tu API inteligente.</span>
             </h1>
             
             {/* Subheadline - Clear value prop */}
-            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed opacity-0 animate-fade-in-up stagger-2">
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
               Sube cualquier documento, entrena con ejemplos propios, 
               y obtén un endpoint REST listo para producción en minutos.
             </p>
             
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 opacity-0 animate-fade-in-up stagger-3">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
               <Button 
                 size="lg" 
                 className="gradient-primary h-12 px-8 text-base shadow-lg hover:shadow-xl transition-all" 
@@ -113,7 +111,7 @@ export default function Index() {
             </div>
 
             {/* Trust indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 text-sm text-muted-foreground opacity-0 animate-fade-in stagger-4">
+            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-success" />
                 Sin tarjeta de crédito
@@ -402,10 +400,7 @@ console.log(data.answer);`}
         <div className="container mx-auto px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <Brain className="h-4 w-4 text-primary-foreground" />
-              </div>
-              <span className="font-semibold">RAGify</span>
+              <img src={logo} alt="RAGify" className="h-6" />
             </div>
             
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
