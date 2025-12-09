@@ -87,8 +87,12 @@ export default function Index() {
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight">
               Tus documentos.
               <br />
-              <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-                <RotatingText phrases={heroRotatingPhrases} interval={3500} />
+              <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent inline-block">
+                <RotatingText 
+                  phrases={heroRotatingPhrases} 
+                  interval={3500} 
+                  className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent"
+                />
               </span>
             </h1>
             
