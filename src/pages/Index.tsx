@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { 
-  Brain, Sparkles, FileText, MessageSquare, ArrowRight, Loader2, 
-  Zap, Shield, Code, Globe, Image, FileType, ChevronRight, Star,
-  CheckCircle, Users, BarChart3
+  Brain, ArrowRight, Loader2, Zap, Shield, Code, 
+  FileText, Bot, Layers, Terminal, Play, Check,
+  ChevronRight, Sparkles, Database, Lock, Globe
 } from 'lucide-react';
 
 export default function Index() {
@@ -20,238 +20,417 @@ export default function Index() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background gradient-mesh">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background overflow-hidden">
-      {/* Background effects */}
-      <div className="fixed inset-0 gradient-mesh pointer-events-none" />
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] gradient-glow pointer-events-none" />
-      
-      <div className="relative">
-        {/* Navigation */}
-        <nav className="container mx-auto px-4 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center glow">
-                <Brain className="h-5 w-5 text-primary-foreground" />
-              </div>
+    <div className="min-h-screen bg-background">
+      {/* Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
+        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-9 h-9 rounded-lg gradient-primary flex items-center justify-center">
+              <Brain className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold tracking-tight">RAGify</span>
+            <span className="text-xl font-bold">RAGify</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/auth')} className="hidden sm:flex">
+          
+          <div className="hidden md:flex items-center gap-8">
+            <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors link-underline">
+              Características
+            </a>
+            <a href="#how-it-works" className="text-sm text-muted-foreground hover:text-foreground transition-colors link-underline">
+              Cómo funciona
+            </a>
+            <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors link-underline">
+              Precios
+            </a>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/auth')} className="hidden sm:flex">
               Iniciar sesión
             </Button>
-            <Button onClick={() => navigate('/auth')} className="gradient-primary shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-all">
-              Comenzar gratis
-              <ArrowRight className="ml-2 h-4 w-4" />
+            <Button size="sm" onClick={() => navigate('/auth')} className="gradient-primary">
+              Empezar gratis
+              <ArrowRight className="ml-1.5 h-4 w-4" />
             </Button>
           </div>
-        </nav>
+        </div>
+      </nav>
 
-        {/* Hero Section */}
-        <section className="container mx-auto px-4 pt-16 pb-24 lg:pt-24 lg:pb-32">
-          <div className="max-w-5xl mx-auto text-center">
+      {/* Hero Section */}
+      <section className="pt-32 pb-20 md:pt-40 md:pb-32 relative overflow-hidden">
+        {/* Subtle background grid */}
+        <div className="absolute inset-0 bg-grid opacity-50" />
+        
+        {/* Gradient orb */}
+        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-3xl pointer-events-none" />
+        
+        <div className="container mx-auto px-6 relative">
+          <div className="max-w-4xl mx-auto text-center">
             {/* Badge */}
-            <div 
-              className="inline-flex items-center gap-2 bg-primary/10 border border-primary/20 text-primary px-4 py-2 rounded-full text-sm font-medium mb-8 animate-fade-in"
-            >
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-sm font-medium mb-8 opacity-0 animate-fade-in">
               <Sparkles className="h-4 w-4" />
-              <span>RAG-as-a-Service para desarrolladores</span>
-              <ChevronRight className="h-3 w-3" />
+              RAG-as-a-Service para developers
             </div>
             
-            {/* Headline */}
-            <h1 
-              className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight opacity-0 animate-fade-in-up"
-              style={{ animationDelay: '100ms' }}
-            >
-              Convierte tus documentos en{' '}
-              <span className="text-gradient">APIs inteligentes</span>
+            {/* Headline - Clean and impactful */}
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight opacity-0 animate-fade-in-up stagger-1">
+              Tus documentos.
+              <br />
+              <span className="bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">Tu API inteligente.</span>
             </h1>
             
-            {/* Subheadline */}
-            <p 
-              className="text-xl md:text-2xl text-muted-foreground mb-10 max-w-3xl mx-auto leading-relaxed opacity-0 animate-fade-in-up"
-              style={{ animationDelay: '200ms' }}
-            >
-              Sube PDFs, imágenes, Word, URLs. Entrena tu IA con ejemplos personalizados. 
-              Obtén un endpoint API listo para integrar en minutos.
+            {/* Subheadline - Clear value prop */}
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed opacity-0 animate-fade-in-up stagger-2">
+              Sube cualquier documento, entrena con ejemplos propios, 
+              y obtén un endpoint REST listo para producción en minutos.
             </p>
             
             {/* CTA Buttons */}
-            <div 
-              className="flex flex-col sm:flex-row gap-4 justify-center mb-16 opacity-0 animate-fade-in-up"
-              style={{ animationDelay: '300ms' }}
-            >
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16 opacity-0 animate-fade-in-up stagger-3">
               <Button 
                 size="lg" 
-                className="gradient-primary text-lg h-14 px-8 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 transition-all hover:scale-105" 
+                className="gradient-primary h-12 px-8 text-base shadow-lg hover:shadow-xl transition-all" 
                 onClick={() => navigate('/auth')}
               >
                 Crear proyecto gratis
-                <ArrowRight className="ml-2 h-5 w-5" />
+                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
               <Button 
                 size="lg" 
                 variant="outline" 
-                className="text-lg h-14 px-8 hover:bg-secondary transition-all"
-                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+                className="h-12 px-8 text-base"
+                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
               >
-                Ver características
+                <Play className="mr-2 h-4 w-4" />
+                Ver demo
               </Button>
             </div>
 
-            {/* Social proof */}
-            <div 
-              className="flex flex-wrap items-center justify-center gap-8 text-muted-foreground opacity-0 animate-fade-in"
-              style={{ animationDelay: '500ms' }}
-            >
+            {/* Trust indicators */}
+            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10 text-sm text-muted-foreground opacity-0 animate-fade-in stagger-4">
               <div className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                <span className="font-medium">500+ usuarios</span>
+                <Check className="h-4 w-4 text-success" />
+                Sin tarjeta de crédito
               </div>
               <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                <span className="font-medium">10K+ documentos procesados</span>
+                <Check className="h-4 w-4 text-success" />
+                Setup en 3 minutos
               </div>
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-4 w-4 fill-warning text-warning" />
-                ))}
-                <span className="ml-1 font-medium">4.9/5</span>
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-success" />
+                API documentada
               </div>
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Features Section */}
-        <section id="features" className="container mx-auto px-4 py-24">
+      {/* Social proof bar */}
+      <section className="py-12 border-y border-border bg-muted/30">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+            <Stat value="500+" label="Desarrolladores" />
+            <div className="hidden md:block w-px h-8 bg-border" />
+            <Stat value="10K+" label="Documentos procesados" />
+            <div className="hidden md:block w-px h-8 bg-border" />
+            <Stat value="99.9%" label="Uptime" />
+            <div className="hidden md:block w-px h-8 bg-border" />
+            <Stat value="<100ms" label="Latencia promedio" />
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-24 md:py-32">
+        <div className="container mx-auto px-6">
           <div className="text-center mb-16">
+            <p className="text-primary font-medium mb-3">CARACTERÍSTICAS</p>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Todo lo que necesitas para <span className="text-gradient">RAG profesional</span>
+              Todo lo que necesitas para RAG en producción
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Desde la subida de documentos hasta la API lista para producción
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              Sin infraestructura que mantener. Sin modelos que entrenar.
+              Solo tu conocimiento, convertido en API.
             </p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
             <FeatureCard
-              icon={FileType}
-              title="Multi-formato"
-              description="PDFs, imágenes con OCR, Word, Excel, texto plano y URLs. Todo procesado automáticamente."
-              gradient="from-violet-500 to-purple-600"
-              delay={0}
+              icon={FileText}
+              title="Multi-formato inteligente"
+              description="PDFs, Word, Excel, imágenes con OCR, URLs. Procesamos y chunkeamos automáticamente."
+              bullets={['OCR para capturas y scans', 'Extracción de tablas', 'Soporte markdown']}
             />
             <FeatureCard
-              icon={Sparkles}
-              title="Entrenamiento personalizado"
-              description="Define el tono con system prompts y ejemplos Q&A. Tu IA responde como tú quieres."
-              gradient="from-pink-500 to-rose-600"
-              delay={100}
+              icon={Bot}
+              title="Entrenamiento sin código"
+              description="Define el comportamiento con prompts y ejemplos Q&A. Tu IA responde como tú quieres."
+              bullets={['System prompts custom', 'Ejemplos few-shot', 'Control de tono y estilo']}
             />
             <FeatureCard
-              icon={Zap}
+              icon={Database}
               title="Embeddings vectoriales"
-              description="Búsqueda semántica real con vectores. Respuestas precisas basadas en contexto relevante."
-              gradient="from-amber-500 to-orange-600"
-              delay={200}
+              description="Búsqueda semántica real con vectores de alta dimensión para máxima precisión."
+              bullets={['Chunking inteligente', 'Similarity search', 'Top-K configurable']}
             />
             <FeatureCard
-              icon={Code}
-              title="API REST documentada"
-              description="Endpoints listos para integrar. Ejemplos en cURL, Python, JavaScript y PHP."
-              gradient="from-emerald-500 to-teal-600"
-              delay={300}
+              icon={Terminal}
+              title="API REST lista"
+              description="Endpoint único con ejemplos en todos los lenguajes. Integra en minutos."
+              bullets={['cURL, Python, JS, PHP', 'Auth por API Key', 'Rate limiting incluido']}
             />
             <FeatureCard
-              icon={MessageSquare}
-              title="Chat con historial"
-              description="Conversaciones guardadas, streaming en tiempo real, markdown renderizado."
-              gradient="from-blue-500 to-cyan-600"
-              delay={400}
+              icon={Lock}
+              title="Seguridad enterprise"
+              description="Tus documentos encriptados, aislados por proyecto, sin compartir con terceros."
+              bullets={['Encryption at rest', 'Aislamiento por tenant', 'GDPR compliant']}
             />
             <FeatureCard
-              icon={BarChart3}
-              title="Analytics completo"
-              description="Dashboard con uso, latencia, preguntas frecuentes. Exporta a CSV."
-              gradient="from-indigo-500 to-violet-600"
-              delay={500}
+              icon={Layers}
+              title="Dashboard analítico"
+              description="Métricas de uso, historial de queries, latencias. Todo exportable a CSV."
+              bullets={['Queries por día', 'Latencia P50/P95', 'Logs de errores']}
             />
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* How it works */}
-        <section className="container mx-auto px-4 py-24 border-t border-border/50">
+      {/* How it works */}
+      <section id="how-it-works" className="py-24 md:py-32 bg-muted/30">
+        <div className="container mx-auto px-6">
           <div className="text-center mb-16">
+            <p className="text-primary font-medium mb-3">CÓMO FUNCIONA</p>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Listo en <span className="text-gradient-accent">3 pasos</span>
+              De cero a API en 3 pasos
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <StepCard
-              number="01"
-              title="Sube tus documentos"
-              description="Arrastra PDFs, imágenes, Word o pega URLs. Procesamos todo automáticamente."
-            />
-            <StepCard
-              number="02"
-              title="Entrena tu asistente"
-              description="Define el system prompt y añade ejemplos de respuestas esperadas."
-            />
-            <StepCard
-              number="03"
-              title="Integra tu API"
-              description="Obtén tu endpoint y empieza a hacer queries desde tu aplicación."
-            />
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="container mx-auto px-4 py-24">
-          <div className="max-w-4xl mx-auto glass-strong rounded-3xl p-12 text-center relative overflow-hidden">
-            <div className="absolute inset-0 gradient-mesh opacity-50" />
-            <div className="relative">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Comienza a construir tu RAG hoy
-              </h2>
-              <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Sin tarjeta de crédito. Configura tu primer proyecto en menos de 5 minutos.
-              </p>
-              <Button 
-                size="lg" 
-                className="gradient-primary text-lg h-14 px-10 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 transition-all hover:scale-105" 
-                onClick={() => navigate('/auth')}
-              >
-                Crear cuenta gratis
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
+          <div className="max-w-4xl mx-auto">
+            <div className="grid gap-8">
+              <StepCard
+                number="01"
+                title="Sube tu conocimiento"
+                description="Arrastra PDFs, imágenes, Word, o pega URLs. Nosotros extraemos, limpiamos y vectorizamos el contenido automáticamente."
+                icon={FileText}
+              />
+              <StepCard
+                number="02"
+                title="Entrena el comportamiento"
+                description="Define cómo debe responder tu asistente. Añade un system prompt y ejemplos de respuestas ideales para tu caso de uso."
+                icon={Bot}
+              />
+              <StepCard
+                number="03"
+                title="Integra tu API"
+                description="Copia tu endpoint y API key. Haz tu primera query en segundos. Ya tienes RAG en tu aplicación."
+                icon={Code}
+              />
             </div>
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Footer */}
-        <footer className="border-t border-border/50 py-12">
-          <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
+      {/* Code example section */}
+      <section className="py-24 md:py-32">
+        <div className="container mx-auto px-6">
+          <div className="max-w-5xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <p className="text-primary font-medium mb-3">INTEGRACIÓN SIMPLE</p>
+                <h2 className="text-3xl md:text-4xl font-bold mb-6">
+                  Una llamada API. Eso es todo.
+                </h2>
+                <p className="text-muted-foreground text-lg mb-8">
+                  Sin SDKs complicados. Sin configuración de modelos. 
+                  Solo un POST con tu pregunta y obtienes la respuesta.
+                </p>
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-success/20 text-success flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Check className="h-3.5 w-3.5" />
+                    </div>
+                    <p className="text-muted-foreground">Respuestas con contexto de tus documentos</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-success/20 text-success flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Check className="h-3.5 w-3.5" />
+                    </div>
+                    <p className="text-muted-foreground">Streaming opcional para UX fluida</p>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 rounded-full bg-success/20 text-success flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Check className="h-3.5 w-3.5" />
+                    </div>
+                    <p className="text-muted-foreground">Metadata de chunks usados en cada respuesta</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="relative">
+                <div className="absolute -inset-4 bg-primary/5 rounded-2xl blur-2xl" />
+                <div className="relative bg-card border border-border rounded-xl overflow-hidden shadow-2xl">
+                  <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 border-b border-border">
+                    <div className="flex gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-destructive/60" />
+                      <div className="w-3 h-3 rounded-full bg-warning/60" />
+                      <div className="w-3 h-3 rounded-full bg-success/60" />
+                    </div>
+                    <span className="text-xs text-muted-foreground ml-2 font-mono">api-request.js</span>
+                  </div>
+                  <pre className="p-6 text-sm overflow-x-auto">
+                    <code className="text-muted-foreground">
+{`const response = await fetch(
+  'https://api.ragify.dev/v1/query',
+  {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer YOUR_API_KEY',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      project_id: 'proj_abc123',
+      query: '¿Cuál es la política de devoluciones?'
+    })
+  }
+);
+
+const data = await response.json();
+console.log(data.answer);`}
+                    </code>
+                  </pre>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing section */}
+      <section id="pricing" className="py-24 md:py-32 bg-muted/30">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-16">
+            <p className="text-primary font-medium mb-3">PRECIOS</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Empieza gratis. Escala cuando quieras.
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Sin sorpresas. Paga solo por lo que usas.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            <PricingCard
+              name="Free"
+              price="$0"
+              description="Para probar y proyectos personales"
+              features={[
+                '1 proyecto',
+                '100 queries/mes',
+                '50MB de documentos',
+                'API documentada',
+                'Soporte por email'
+              ]}
+              cta="Empezar gratis"
+              onCtaClick={() => navigate('/auth')}
+            />
+            <PricingCard
+              name="Pro"
+              price="$29"
+              description="Para startups y equipos pequeños"
+              features={[
+                '10 proyectos',
+                '10K queries/mes',
+                '1GB de documentos',
+                'Analytics avanzado',
+                'Soporte prioritario',
+                'Custom system prompts'
+              ]}
+              highlighted
+              cta="Comenzar prueba"
+              onCtaClick={() => navigate('/auth')}
+            />
+            <PricingCard
+              name="Enterprise"
+              price="Custom"
+              description="Para grandes organizaciones"
+              features={[
+                'Proyectos ilimitados',
+                'Queries ilimitadas',
+                'Storage ilimitado',
+                'SSO / SAML',
+                'SLA garantizado',
+                'Soporte dedicado'
+              ]}
+              cta="Contactar ventas"
+              onCtaClick={() => navigate('/auth')}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-24 md:py-32">
+        <div className="container mx-auto px-6">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              Convierte tu documentación en una ventaja competitiva
+            </h2>
+            <p className="text-muted-foreground text-lg mb-10">
+              Únete a cientos de desarrolladores que ya usan RAGify para construir 
+              asistentes inteligentes sin la complejidad del ML.
+            </p>
+            <Button 
+              size="lg" 
+              className="gradient-primary h-14 px-10 text-lg shadow-lg hover:shadow-xl transition-all" 
+              onClick={() => navigate('/auth')}
+            >
+              Crear mi primer proyecto
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border py-12">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
                 <Brain className="h-4 w-4 text-primary-foreground" />
               </div>
               <span className="font-semibold">RAGify</span>
             </div>
+            
+            <div className="flex items-center gap-6 text-sm text-muted-foreground">
+              <a href="#" className="hover:text-foreground transition-colors">Documentación</a>
+              <a href="#" className="hover:text-foreground transition-colors">Changelog</a>
+              <a href="#" className="hover:text-foreground transition-colors">Privacidad</a>
+              <a href="#" className="hover:text-foreground transition-colors">Términos</a>
+            </div>
+            
             <p className="text-sm text-muted-foreground">
-              © 2024 RAGify. RAG-as-a-Service. Construido con Lovable.
+              © 2024 RAGify. Hecho con Lovable.
             </p>
           </div>
-        </footer>
-      </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+// Components
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="text-center">
+      <div className="text-2xl md:text-3xl font-bold text-foreground">{value}</div>
+      <div className="text-sm text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -260,25 +439,28 @@ function FeatureCard({
   icon: Icon,
   title,
   description,
-  gradient,
-  delay,
+  bullets,
 }: {
   icon: any;
   title: string;
   description: string;
-  gradient: string;
-  delay: number;
+  bullets: string[];
 }) {
   return (
-    <div
-      className="glass group p-6 rounded-2xl hover:shadow-xl transition-all duration-300 hover:-translate-y-1 opacity-0 animate-fade-in"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform`}>
-        <Icon className="h-6 w-6 text-white" />
+    <div className="group bg-card border border-border rounded-xl p-6 card-interactive">
+      <div className="w-11 h-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+        <Icon className="h-5 w-5" />
       </div>
       <h3 className="font-semibold text-lg mb-2">{title}</h3>
-      <p className="text-muted-foreground leading-relaxed">{description}</p>
+      <p className="text-muted-foreground text-sm mb-4 leading-relaxed">{description}</p>
+      <ul className="space-y-2">
+        {bullets.map((bullet, i) => (
+          <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+            <ChevronRight className="h-3 w-3 text-primary" />
+            {bullet}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -287,16 +469,77 @@ function StepCard({
   number,
   title,
   description,
+  icon: Icon,
 }: {
   number: string;
   title: string;
   description: string;
+  icon: any;
 }) {
   return (
-    <div className="text-center">
-      <div className="text-6xl font-bold text-gradient mb-4">{number}</div>
-      <h3 className="font-semibold text-xl mb-2">{title}</h3>
-      <p className="text-muted-foreground">{description}</p>
+    <div className="flex gap-6 items-start">
+      <div className="flex-shrink-0">
+        <div className="w-14 h-14 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl font-bold">
+          {number}
+        </div>
+      </div>
+      <div className="flex-1 pt-1">
+        <h3 className="font-semibold text-xl mb-2">{title}</h3>
+        <p className="text-muted-foreground leading-relaxed">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function PricingCard({
+  name,
+  price,
+  description,
+  features,
+  highlighted,
+  cta,
+  onCtaClick,
+}: {
+  name: string;
+  price: string;
+  description: string;
+  features: string[];
+  highlighted?: boolean;
+  cta: string;
+  onCtaClick: () => void;
+}) {
+  return (
+    <div className={`relative bg-card border rounded-xl p-6 ${highlighted ? 'border-primary shadow-lg ring-1 ring-primary/20' : 'border-border'}`}>
+      {highlighted && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <span className="bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-full">
+            Popular
+          </span>
+        </div>
+      )}
+      <div className="mb-6">
+        <h3 className="font-semibold text-lg mb-1">{name}</h3>
+        <div className="flex items-baseline gap-1 mb-2">
+          <span className="text-3xl font-bold">{price}</span>
+          {price !== 'Custom' && <span className="text-muted-foreground">/mes</span>}
+        </div>
+        <p className="text-sm text-muted-foreground">{description}</p>
+      </div>
+      <ul className="space-y-3 mb-6">
+        {features.map((feature, i) => (
+          <li key={i} className="flex items-center gap-2 text-sm">
+            <Check className="h-4 w-4 text-success flex-shrink-0" />
+            {feature}
+          </li>
+        ))}
+      </ul>
+      <Button 
+        className={`w-full ${highlighted ? 'gradient-primary' : ''}`}
+        variant={highlighted ? 'default' : 'outline'}
+        onClick={onCtaClick}
+      >
+        {cta}
+      </Button>
     </div>
   );
 }
