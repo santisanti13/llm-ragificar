@@ -159,6 +159,50 @@ export type Database = {
           },
         ]
       }
+      project_api_keys: {
+        Row: {
+          api_key_hash: string
+          created_at: string
+          id: string
+          is_active: boolean
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          project_id: string
+          user_id: string
+        }
+        Insert: {
+          api_key_hash: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_prefix: string
+          last_used_at?: string | null
+          name?: string
+          project_id: string
+          user_id: string
+        }
+        Update: {
+          api_key_hash?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          project_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_api_keys_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_training: {
         Row: {
           created_at: string

@@ -6,9 +6,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Save, Plus, Trash2, MessageCircle, Sparkles, Loader2, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Save, Plus, Trash2, MessageCircle, Sparkles, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { ApiKeysManager } from '@/components/ApiKeysManager';
+import { ApiDocumentation } from '@/components/ApiDocumentation';
 
 interface TrainingExample {
   id: string;
@@ -328,6 +330,21 @@ export function TrainingConfig({ projectId }: TrainingConfigProps) {
           )}
         </CardContent>
       </Card>
+
+      {/* API Integration Section */}
+      <Separator className="my-8" />
+      
+      <div className="space-y-6">
+        <div className="text-center space-y-2">
+          <h3 className="text-xl font-bold">Integración API</h3>
+          <p className="text-muted-foreground text-sm">
+            Genera API keys para integrar tu asistente RAG en tus aplicaciones
+          </p>
+        </div>
+
+        <ApiKeysManager projectId={projectId} />
+        <ApiDocumentation projectId={projectId} />
+      </div>
     </div>
   );
 }
