@@ -6,6 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-api-key",
 };
 
+// Hash function for API key validation
+async function hashApiKey(key: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(key);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -50,6 +59,36 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    // Validate API key against project_api_keys table
+    const apiKeyHash = await hashApiKey(apiKey);
+    const { data: apiKeyRecord, error: apiKeyError } = await supabaseClient
+      .from("project_api_keys")
+      .select("id, project_id, is_active")
+      .eq("api_key_hash", apiKeyHash)
+      .eq("project_id", project_id)
+      .single();
+
+    if (apiKeyError || !apiKeyRecord) {
+      console.log("Invalid API key for project:", project_id);
+      return new Response(
+        JSON.stringify({ error: "Invalid API key" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!apiKeyRecord.is_active) {
+      return new Response(
+        JSON.stringify({ error: "API key is inactive" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Update last_used_at
+    await supabaseClient
+      .from("project_api_keys")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("id", apiKeyRecord.id);
+
     // Verify project exists and get user_id for logging
     const { data: project, error: projectError } = await supabaseClient
       .from("projects")
@@ -59,7 +98,7 @@ serve(async (req) => {
 
     if (projectError || !project) {
       return new Response(
-        JSON.stringify({ error: "Project not found or invalid API key" }),
+        JSON.stringify({ error: "Project not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
