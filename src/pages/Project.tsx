@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { ArrowLeft, FileText, MessageSquare, Loader2, Brain, Upload, Trash2, CheckCircle, AlertCircle, Clock, Settings } from 'lucide-react';
+import { ArrowLeft, FileText, MessageSquare, Loader2, Brain, Upload, Trash2, CheckCircle, AlertCircle, Clock, Settings, Mic } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { ChatInterface } from '@/components/ChatInterface';
 import { TrainingConfig } from '@/components/TrainingConfig';
+import { VoiceAssistant } from '@/components/VoiceAssistant';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -223,7 +224,7 @@ export default function ProjectPage() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="documents" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Documentos ({documents.length})
@@ -235,6 +236,10 @@ export default function ProjectPage() {
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               Chat
+            </TabsTrigger>
+            <TabsTrigger value="voice" className="flex items-center gap-2">
+              <Mic className="h-4 w-4" />
+              Voz
             </TabsTrigger>
           </TabsList>
 
@@ -332,6 +337,24 @@ export default function ProjectPage() {
               </Card>
             ) : (
               <ChatInterface projectId={id!} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="voice" className="animate-fade-in">
+            {readyDocuments.length === 0 ? (
+              <Card className="glass">
+                <CardContent className="py-12 text-center">
+                  <Mic className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                  <h3 className="text-lg font-semibold mb-2">Asistente de voz no disponible</h3>
+                  <p className="text-muted-foreground">
+                    Sube y procesa al menos un documento para usar el asistente de voz
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="max-w-md mx-auto">
+                <VoiceAssistant projectId={id!} />
+              </div>
             )}
           </TabsContent>
         </Tabs>
