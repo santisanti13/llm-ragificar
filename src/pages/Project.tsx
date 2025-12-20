@@ -224,7 +224,7 @@ export default function ProjectPage() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="documents" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Documentos ({documents.length})
@@ -235,11 +235,7 @@ export default function ProjectPage() {
             </TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              Chat
-            </TabsTrigger>
-            <TabsTrigger value="voice" className="flex items-center gap-2">
-              <Mic className="h-4 w-4" />
-              Voz
+              Asistente
             </TabsTrigger>
           </TabsList>
 
@@ -329,31 +325,28 @@ export default function ProjectPage() {
               <Card className="glass">
                 <CardContent className="py-12 text-center">
                   <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <h3 className="text-lg font-semibold mb-2">Chat no disponible</h3>
+                  <h3 className="text-lg font-semibold mb-2">Asistente no disponible</h3>
                   <p className="text-muted-foreground">
-                    Sube y procesa al menos un documento para chatear con tu contenido
+                    Sube y procesa al menos un documento para usar el asistente
                   </p>
                 </CardContent>
               </Card>
             ) : (
-              <ChatInterface projectId={id!} />
-            )}
-          </TabsContent>
-
-          <TabsContent value="voice" className="animate-fade-in">
-            {readyDocuments.length === 0 ? (
-              <Card className="glass">
-                <CardContent className="py-12 text-center">
-                  <Mic className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
-                  <h3 className="text-lg font-semibold mb-2">Asistente de voz no disponible</h3>
-                  <p className="text-muted-foreground">
-                    Sube y procesa al menos un documento para usar el asistente de voz
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="max-w-md mx-auto">
-                <VoiceAssistant projectId={id!} />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5 text-primary" />
+                    Chat de texto
+                  </h3>
+                  <ChatInterface projectId={id!} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Mic className="h-5 w-5 text-primary" />
+                    Asistente de voz
+                  </h3>
+                  <VoiceAssistant projectId={id!} />
+                </div>
               </div>
             )}
           </TabsContent>
