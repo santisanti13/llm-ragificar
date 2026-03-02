@@ -6,15 +6,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { ArrowLeft, FileText, MessageSquare, Loader2, Brain, Upload, Trash2, CheckCircle, AlertCircle, Clock, Settings, Mic } from 'lucide-react';
+import { ArrowLeft, FileText, MessageSquare, Loader2, Brain, Upload, Trash2, CheckCircle, AlertCircle, Clock, Settings, Mic, Key, Code } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { ChatInterface } from '@/components/ChatInterface';
 import { TrainingConfig } from '@/components/TrainingConfig';
 import { VoiceAssistant } from '@/components/VoiceAssistant';
+import { ApiKeysManager } from '@/components/ApiKeysManager';
+import { ApiDocumentation } from '@/components/ApiDocumentation';
+import { SuggestedQuestions } from '@/components/SuggestedQuestions';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+
 interface DocumentItem {
   id: string;
   name: string;
@@ -41,6 +45,7 @@ export default function ProjectPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showSuggestionsFor, setShowSuggestionsFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -54,6 +59,16 @@ export default function ProjectPage() {
     }
   }, [user, id]);
 
+  // Poll for document status updates
+  useEffect(() => {
+    if (!user || !id) return;
+    const processingDocs = documents.filter(d => d.status === 'processing' || d.status === 'pending');
+    if (processingDocs.length === 0) return;
+
+    const interval = setInterval(fetchProjectData, 5000);
+    return () => clearInterval(interval);
+  }, [documents, user, id]);
+
   const fetchProjectData = async () => {
     try {
       const [projectRes, docsRes] = await Promise.all([
@@ -65,7 +80,19 @@ export default function ProjectPage() {
       if (docsRes.error) throw docsRes.error;
 
       setProject(projectRes.data);
-      setDocuments(docsRes.data || []);
+
+      // Check if any doc just became ready
+      const prevDocs = documents;
+      const newDocs = docsRes.data || [];
+      newDocs.forEach((doc) => {
+        const prev = prevDocs.find(d => d.id === doc.id);
+        if (prev && prev.status !== 'ready' && doc.status === 'ready') {
+          // Document just finished processing - offer to generate questions
+          setShowSuggestionsFor(doc.id);
+        }
+      });
+
+      setDocuments(newDocs);
     } catch (error: any) {
       toast.error('Error al cargar el proyecto');
       navigate('/dashboard');
@@ -89,15 +116,10 @@ export default function ProjectPage() {
     for (let i = 0; i < pdfFiles.length; i++) {
       const file = pdfFiles[i];
       try {
-        // Upload to storage
         const filePath = `${user.id}/${id}/${Date.now()}_${file.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from('documents')
-          .upload(filePath, file);
-
+        const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
         if (uploadError) throw uploadError;
 
-        // Create document record
         const { data: docData, error: docError } = await supabase
           .from('documents')
           .insert({
@@ -113,14 +135,11 @@ export default function ProjectPage() {
 
         if (docError) throw docError;
 
-        // Trigger processing
         const { error: processError } = await supabase.functions.invoke('process-document', {
           body: { documentId: docData.id },
         });
 
-        if (processError) {
-          console.error('Error triggering processing:', processError);
-        }
+        if (processError) console.error('Error triggering processing:', processError);
 
         setUploadProgress(((i + 1) / pdfFiles.length) * 100);
       } catch (error: any) {
@@ -143,13 +162,9 @@ export default function ProjectPage() {
     if (!confirm(`¿Eliminar "${doc.name}"?`)) return;
 
     try {
-      // Delete from storage
       await supabase.storage.from('documents').remove([doc.file_path]);
-      
-      // Delete record (cascade will delete chunks)
       const { error } = await supabase.from('documents').delete().eq('id', doc.id);
       if (error) throw error;
-
       toast.success('Documento eliminado');
       fetchProjectData();
     } catch (error: any) {
@@ -159,14 +174,10 @@ export default function ProjectPage() {
 
   const getStatusIcon = (status: DocumentItem['status']) => {
     switch (status) {
-      case 'ready':
-        return <CheckCircle className="h-4 w-4 text-success" />;
-      case 'processing':
-        return <Loader2 className="h-4 w-4 animate-spin text-warning" />;
-      case 'error':
-        return <AlertCircle className="h-4 w-4 text-destructive" />;
-      default:
-        return <Clock className="h-4 w-4 text-muted-foreground" />;
+      case 'ready': return <CheckCircle className="h-4 w-4 text-success" />;
+      case 'processing': return <Loader2 className="h-4 w-4 animate-spin text-warning" />;
+      case 'error': return <AlertCircle className="h-4 w-4 text-destructive" />;
+      default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
@@ -204,7 +215,6 @@ export default function ProjectPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
@@ -224,18 +234,26 @@ export default function ProjectPage() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="documents" className="space-y-6">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-5">
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
-              Documentos ({documents.length})
+              <span className="hidden sm:inline">Docs ({documents.length})</span>
             </TabsTrigger>
             <TabsTrigger value="training" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              Entrenamiento
+              <span className="hidden sm:inline">Entrena</span>
             </TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              Asistente
+              <span className="hidden sm:inline">Asistente</span>
+            </TabsTrigger>
+            <TabsTrigger value="api" className="flex items-center gap-2">
+              <Key className="h-4 w-4" />
+              <span className="hidden sm:inline">API</span>
+            </TabsTrigger>
+            <TabsTrigger value="docs" className="flex items-center gap-2">
+              <Code className="h-4 w-4" />
+              <span className="hidden sm:inline">Docs API</span>
             </TabsTrigger>
           </TabsList>
 
@@ -246,9 +264,7 @@ export default function ProjectPage() {
                 <div
                   {...getRootProps()}
                   className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all ${
-                    isDragActive
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-primary/50 hover:bg-muted/50'
+                    isDragActive ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50 hover:bg-muted/50'
                   } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <input {...getInputProps()} />
@@ -269,6 +285,16 @@ export default function ProjectPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Suggested questions prompt */}
+            {showSuggestionsFor && (
+              <SuggestedQuestions
+                projectId={id!}
+                documentId={showSuggestionsFor}
+                onClose={() => setShowSuggestionsFor(null)}
+                onSaved={() => fetchProjectData()}
+              />
+            )}
 
             {/* Documents list */}
             {documents.length === 0 ? (
@@ -300,6 +326,16 @@ export default function ProjectPage() {
                       </div>
                       <div className="flex items-center gap-3">
                         {getStatusBadge(doc.status)}
+                        {doc.status === 'ready' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary"
+                            onClick={() => setShowSuggestionsFor(doc.id)}
+                          >
+                            Generar Q&A
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -326,9 +362,7 @@ export default function ProjectPage() {
                 <CardContent className="py-12 text-center">
                   <MessageSquare className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
                   <h3 className="text-lg font-semibold mb-2">Asistente no disponible</h3>
-                  <p className="text-muted-foreground">
-                    Sube y procesa al menos un documento para usar el asistente
-                  </p>
+                  <p className="text-muted-foreground">Sube y procesa al menos un documento para usar el asistente</p>
                 </CardContent>
               </Card>
             ) : (
@@ -349,6 +383,14 @@ export default function ProjectPage() {
                 </div>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="api" className="animate-fade-in">
+            <ApiKeysManager projectId={id!} />
+          </TabsContent>
+
+          <TabsContent value="docs" className="animate-fade-in">
+            <ApiDocumentation projectId={id!} />
           </TabsContent>
         </Tabs>
       </main>
