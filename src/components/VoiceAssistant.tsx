@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useConversation } from '@elevenlabs/react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -13,18 +13,24 @@ interface VoiceAssistantProps {
 export function VoiceAssistant({ projectId }: VoiceAssistantProps) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [transcript, setTranscript] = useState<string[]>([]);
+  const [disconnectReason, setDisconnectReason] = useState<string>('');
+  const endingSessionRef = useRef(false);
 
   const conversation = useConversation({
     onConnect: () => {
-      console.log('Connected to ElevenLabs agent');
+      console.log('[VoiceAssistant] Connected at', new Date().toISOString());
+      endingSessionRef.current = false;
       toast.success('Conectado al asistente de voz');
     },
-    onDisconnect: () => {
-      console.log('Disconnected from ElevenLabs agent');
-      toast.info('Desconectado del asistente');
+    onDisconnect: (reason?: any) => {
+      console.log('[VoiceAssistant] Disconnected at', new Date().toISOString(), 'reason:', reason);
+      setDisconnectReason(reason ? JSON.stringify(reason) : 'unknown');
+      if (!endingSessionRef.current) {
+        toast.info('Desconectado del asistente');
+      }
     },
     onMessage: (message: any) => {
-      console.log('Message received:', message);
+      console.log('[VoiceAssistant] Message:', message.type, message);
       if (message.type === 'user_transcript' && message.user_transcription_event?.user_transcript) {
         setTranscript(prev => [...prev, `Tú: ${message.user_transcription_event.user_transcript}`]);
       } else if (message.type === 'agent_response' && message.agent_response_event?.agent_response) {
@@ -32,22 +38,29 @@ export function VoiceAssistant({ projectId }: VoiceAssistantProps) {
       }
     },
     onError: (error: any) => {
-      console.error('Conversation error:', error);
+      console.error('[VoiceAssistant] Error:', error);
       toast.error('Error en la conversación');
     },
   });
+
+  // Keep a stable ref to conversation for cleanup
+  const conversationRef = useRef(conversation);
+  useEffect(() => {
+    conversationRef.current = conversation;
+  }, [conversation]);
 
   const startConversation = useCallback(async () => {
     setIsConnecting(true);
     try {
       // Request microphone permission
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('[VoiceAssistant] Microphone granted, tracks:', stream.getAudioTracks().length);
 
       // Get token from edge function
       const { data, error } = await supabase.functions.invoke('elevenlabs-conversation-token');
 
       if (error) {
-        console.error('Error getting token:', error);
+        console.error('[VoiceAssistant] Token error:', error);
         throw new Error('No se pudo obtener el token de conversación');
       }
 
@@ -55,7 +68,7 @@ export function VoiceAssistant({ projectId }: VoiceAssistantProps) {
         throw new Error('No se recibió token');
       }
 
-      console.log('Starting conversation with token');
+      console.log('[VoiceAssistant] Starting session with token');
 
       // Start the conversation with WebRTC
       await conversation.startSession({
@@ -64,8 +77,9 @@ export function VoiceAssistant({ projectId }: VoiceAssistantProps) {
       });
 
       setTranscript([]);
+      setDisconnectReason('');
     } catch (error: any) {
-      console.error('Failed to start conversation:', error);
+      console.error('[VoiceAssistant] Failed to start:', error);
       if (error.name === 'NotAllowedError') {
         toast.error('Permiso de micrófono denegado. Habilita el acceso al micrófono.');
       } else {
@@ -77,16 +91,19 @@ export function VoiceAssistant({ projectId }: VoiceAssistantProps) {
   }, [conversation]);
 
   const stopConversation = useCallback(async () => {
+    endingSessionRef.current = true;
     await conversation.endSession();
+    toast.info('Conversación terminada');
   }, [conversation]);
 
+  // Cleanup only on unmount
   useEffect(() => {
     return () => {
-      if (conversation.status === 'connected') {
-        conversation.endSession();
+      if (conversationRef.current?.status === 'connected') {
+        conversationRef.current.endSession();
       }
     };
-  }, [conversation]);
+  }, []);
 
   const isConnected = conversation.status === 'connected';
 
@@ -141,6 +158,13 @@ export function VoiceAssistant({ projectId }: VoiceAssistantProps) {
                   : 'Escuchando...'
                 : 'Haz clic en el botón para iniciar'}
           </p>
+
+          {/* Disconnect reason for debugging */}
+          {disconnectReason && !isConnected && (
+            <p className="text-xs text-muted-foreground/60">
+              Última desconexión: {disconnectReason}
+            </p>
+          )}
 
           {/* Control button */}
           {!isConnected ? (
