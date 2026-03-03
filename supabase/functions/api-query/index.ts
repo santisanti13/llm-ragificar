@@ -57,8 +57,9 @@ serve(async (req) => {
     const body = await req.json();
     const { project_id, query, messages, stream = false } = body;
 
-    if (!project_id) {
-      return new Response(JSON.stringify({ error: "project_id is required" }), {
+    // Input validation
+    if (!project_id || typeof project_id !== "string" || project_id.length > 100) {
+      return new Response(JSON.stringify({ error: "Invalid or missing project_id" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -69,6 +70,36 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (query && (typeof query !== "string" || query.length > 10000)) {
+      return new Response(JSON.stringify({ error: "Invalid query (must be string, max 10000 chars)" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (messages) {
+      if (!Array.isArray(messages) || messages.length > 100) {
+        return new Response(JSON.stringify({ error: "Invalid messages (must be array, max 100)" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      for (const msg of messages) {
+        if (!msg.role || typeof msg.role !== "string" || !["user", "assistant", "system"].includes(msg.role)) {
+          return new Response(JSON.stringify({ error: "Invalid message role" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (!msg.content || typeof msg.content !== "string" || msg.content.length > 10000) {
+          return new Response(JSON.stringify({ error: "Invalid message content (max 10000 chars)" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
     }
 
     console.log(`API Query - Project: ${project_id}, Query: ${query?.substring(0, 50) || "messages provided"}...`);
