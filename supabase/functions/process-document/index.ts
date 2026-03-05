@@ -6,28 +6,46 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-async function generateEmbedding(text: string, apiKey: string): Promise<number[]> {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+// Use Gemini to extract text from PDF binary data
+async function extractTextFromPdf(pdfBase64: string, apiKey: string): Promise<string> {
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "text-embedding-3-small",
-      input: text.substring(0, 8000),
-      dimensions: 768,
+      model: "google/gemini-2.5-flash",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Extract ALL the text content from this PDF document. Return ONLY the raw text, preserving paragraphs and structure. Do not add any commentary, headers, or formatting beyond what exists in the document. If tables exist, represent them as plain text.",
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: `data:application/pdf;base64,${pdfBase64}`,
+              },
+            },
+          ],
+        },
+      ],
+      temperature: 0,
+      max_tokens: 64000,
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Embedding error:", response.status, errorText);
-    throw new Error(`Embedding error: ${response.status}`);
+    console.error("Gemini PDF extraction error:", response.status, errorText);
+    throw new Error(`PDF extraction error: ${response.status}`);
   }
 
   const data = await response.json();
-  return data.data[0].embedding;
+  return data.choices?.[0]?.message?.content || "";
 }
 
 function chunkText(text: string, chunkSize: number, chunkOverlap: number): string[] {
@@ -39,14 +57,12 @@ function chunkText(text: string, chunkSize: number, chunkOverlap: number): strin
     if ((currentChunk + para).length > chunkSize) {
       if (currentChunk) {
         chunks.push(currentChunk.trim());
-        // Apply overlap: keep the last `chunkOverlap` chars
         if (chunkOverlap > 0 && currentChunk.length > chunkOverlap) {
           currentChunk = currentChunk.slice(-chunkOverlap) + "\n\n" + para;
         } else {
           currentChunk = para;
         }
       } else {
-        // Single paragraph exceeds chunk size - split by sentences
         if (para.length > chunkSize) {
           const sentences = para.split(/(?<=[.!?])\s+/);
           let sentenceChunk = "";
@@ -106,52 +122,73 @@ serve(async (req) => {
     const chunkSize = trainingConfig?.chunk_size ?? 1000;
     const chunkOverlap = trainingConfig?.chunk_overlap ?? 200;
 
-    console.log(`Chunking with size=${chunkSize}, overlap=${chunkOverlap}`);
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
+    // Download file
     const { data: fileData, error: downloadError } = await supabaseAdmin.storage
       .from("documents").download(doc.file_path);
 
     if (downloadError) throw new Error(`Failed to download: ${downloadError.message}`);
 
-    const text = await fileData.text();
-    const validChunks = chunkText(text, chunkSize, chunkOverlap);
+    // Determine if PDF or text
+    const isPdf = doc.name.toLowerCase().endsWith(".pdf");
+    let text: string;
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (isPdf) {
+      console.log("Extracting text from PDF using Gemini...");
+      const arrayBuffer = await fileData.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Convert to base64
+      let binary = "";
+      const chunkSizeB64 = 8192;
+      for (let i = 0; i < uint8Array.length; i += chunkSizeB64) {
+        const chunk = uint8Array.subarray(i, i + chunkSizeB64);
+        binary += String.fromCharCode(...chunk);
+      }
+      const pdfBase64 = btoa(binary);
+      
+      text = await extractTextFromPdf(pdfBase64, LOVABLE_API_KEY);
+      console.log(`Extracted ${text.length} chars from PDF`);
+    } else {
+      text = await fileData.text();
+    }
+
+    if (!text || text.trim().length < 10) {
+      throw new Error("No text could be extracted from the document");
+    }
+
+    const validChunks = chunkText(text, chunkSize, chunkOverlap);
+    console.log(`Chunking with size=${chunkSize}, overlap=${chunkOverlap}, chunks=${validChunks.length}`);
+
+    // Delete old chunks for this document (for re-processing)
+    await supabaseAdmin.from("document_chunks").delete().eq("document_id", documentId);
 
     if (validChunks.length > 0) {
-      const chunkRecords = [];
-      for (let index = 0; index < validChunks.length; index++) {
-        const content = validChunks[index];
-        let embedding = null;
-
-        if (LOVABLE_API_KEY) {
-          try {
-            embedding = await generateEmbedding(content, LOVABLE_API_KEY);
-            console.log(`Embedding ${index + 1}/${validChunks.length}`);
-          } catch (e) {
-            console.error(`Embedding failed for chunk ${index}:`, e);
-          }
-        }
-
-        chunkRecords.push({
-          document_id: documentId,
-          project_id: doc.project_id,
-          content,
-          chunk_index: index,
-          embedding: embedding ? JSON.stringify(embedding) : null,
-        });
-      }
+      // Insert chunks WITHOUT embeddings - rely on FTS instead
+      const chunkRecords = validChunks.map((content, index) => ({
+        document_id: documentId,
+        project_id: doc.project_id,
+        content,
+        chunk_index: index,
+      }));
 
       const { error: insertError } = await supabaseAdmin.from("document_chunks").insert(chunkRecords);
       if (insertError) {
-        console.error("Insert error:", insertError);
-        throw insertError;
+        console.error("Insert error:", JSON.stringify(insertError));
+        throw new Error(`Failed to insert chunks: ${insertError.message}`);
       }
+      console.log(`Inserted ${chunkRecords.length} chunks successfully`);
     }
 
-    await supabaseAdmin.from("documents").update({ status: "ready", chunk_count: validChunks.length }).eq("id", documentId);
+    await supabaseAdmin.from("documents").update({ 
+      status: "ready", 
+      chunk_count: validChunks.length,
+      error_message: null 
+    }).eq("id", documentId);
 
-    console.log(`Document processed: ${validChunks.length} chunks (size=${chunkSize}, overlap=${chunkOverlap})`);
+    console.log(`Document processed: ${validChunks.length} chunks`);
 
     return new Response(JSON.stringify({ success: true, chunks: validChunks.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
