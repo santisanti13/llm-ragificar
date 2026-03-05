@@ -350,28 +350,28 @@ export default function ProjectPage() {
               <div className="space-y-3">
                 {documents.map((doc, index) => (
                   <Card key={doc.id} className="glass animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
-                    <CardContent className="p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-4 min-w-0">
-                        {getStatusIcon(doc.status)}
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{doc.name}</p>
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <CardContent className="p-4 space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between">
+                      <div className="flex items-start sm:items-center gap-3 min-w-0">
+                        <div className="mt-0.5 sm:mt-0">{getStatusIcon(doc.status)}</div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium truncate max-w-[200px] sm:max-w-none">{doc.name}</p>
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-muted-foreground mt-1">
                             <span>{formatFileSize(doc.file_size)}</span>
+                            {getStatusBadge(doc.status)}
                             {doc.status === 'ready' && <span>{doc.chunk_count} chunks</span>}
                             <span>{format(new Date(doc.created_at), 'dd MMM yyyy', { locale: es })}</span>
                           </div>
                           {doc.error_message && (
-                            <p className="text-sm text-destructive mt-1">{doc.error_message}</p>
+                            <p className="text-xs text-destructive mt-1 line-clamp-2">{doc.error_message}</p>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        {getStatusBadge(doc.status)}
+                      <div className="flex items-center gap-1 sm:gap-2 pl-7 sm:pl-0">
                         {(doc.status === 'ready' || doc.status === 'error') && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-muted-foreground hover:text-primary"
+                            className="h-8 w-8 text-muted-foreground hover:text-primary"
                             onClick={() => handleReprocessDocument(doc)}
                             title="Re-procesar documento"
                           >
@@ -382,16 +382,16 @@ export default function ProjectPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-primary"
+                            className="text-primary text-xs h-8"
                             onClick={() => setShowSuggestionsFor(doc.id)}
                           >
-                            Generar Q&A
+                            Q&A
                           </Button>
                         )}
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive hover:text-destructive"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => handleDeleteDocument(doc)}
                         >
                           <Trash2 className="h-4 w-4" />
