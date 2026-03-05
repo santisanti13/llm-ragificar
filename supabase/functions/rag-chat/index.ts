@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 async function generateEmbedding(text: string, apiKey: string): Promise<number[]> {
@@ -53,14 +53,13 @@ serve(async (req) => {
 
     console.log("RAG chat for project:", projectId);
 
-    // Get the latest user message for semantic search
     const lastUserMessage = messages?.filter((m: any) => m.role === "user").pop()?.content || "";
 
-    // Fetch training config and examples
+    // Fetch training config (with new params) and examples
     const [trainingRes, examplesRes] = await Promise.all([
       supabaseClient
         .from("project_training")
-        .select("system_prompt, first_message")
+        .select("system_prompt, first_message, temperature, similarity_threshold, match_count, model")
         .eq("project_id", projectId)
         .maybeSingle(),
       supabaseClient
@@ -74,7 +73,12 @@ serve(async (req) => {
     const training = trainingRes.data;
     const examples = examplesRes.data || [];
 
-    // Try semantic search first, fall back to text chunks
+    const temperature = training?.temperature ?? 0.7;
+    const similarityThreshold = training?.similarity_threshold ?? 0.3;
+    const matchCount = training?.match_count ?? 8;
+    const model = training?.model || "google/gemini-2.5-flash";
+
+    // Semantic search
     let context = "";
     let chunksUsed = 0;
 
@@ -84,21 +88,21 @@ serve(async (req) => {
         const { data: semanticChunks, error: matchError } = await supabaseAdmin.rpc("match_document_chunks", {
           query_embedding: JSON.stringify(queryEmbedding),
           match_project_id: projectId,
-          match_threshold: 0.3,
-          match_count: 8,
+          match_threshold: similarityThreshold,
+          match_count: matchCount,
         });
 
         if (!matchError && semanticChunks && semanticChunks.length > 0) {
           context = semanticChunks.map((c: any) => c.content).join("\n\n");
           chunksUsed = semanticChunks.length;
-          console.log(`Semantic search: ${chunksUsed} chunks found`);
+          console.log(`Semantic search: ${chunksUsed} chunks (threshold: ${similarityThreshold})`);
         }
       } catch (e) {
         console.error("Semantic search failed, falling back to text:", e);
       }
     }
 
-    // Fallback: fetch chunks without embeddings
+    // Fallback
     if (!context) {
       const { data: fallbackChunks } = await supabaseClient
         .from("document_chunks")
@@ -109,11 +113,10 @@ serve(async (req) => {
       if (fallbackChunks) {
         context = fallbackChunks.map((c) => c.content).join("\n\n");
         chunksUsed = fallbackChunks.length;
-        console.log(`Fallback text search: ${chunksUsed} chunks`);
       }
     }
 
-    console.log(`Training: ${training ? "configured" : "default"}, Examples: ${examples.length}, Chunks: ${chunksUsed}`);
+    console.log(`Model: ${model}, Temp: ${temperature}, Chunks: ${chunksUsed}, Examples: ${examples.length}`);
 
     // Build system prompt
     let systemPrompt =
@@ -138,8 +141,10 @@ serve(async (req) => {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model,
         messages: [{ role: "system", content: systemPrompt }, ...messages],
+        stream: true,
+        temperature,
       }),
     });
 
@@ -162,13 +167,9 @@ serve(async (req) => {
       throw new Error(`AI error: ${response.status}`);
     }
 
-    const aiResponse = await response.json();
-    const assistantMessage = aiResponse.choices?.[0]?.message?.content || "No pude generar una respuesta.";
-
-    console.log("RAG response generated successfully");
-
-    return new Response(JSON.stringify({ response: assistantMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Stream the response
+    return new Response(response.body, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
     const error = e as Error;
