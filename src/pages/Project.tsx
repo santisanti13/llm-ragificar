@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { ArrowLeft, FileText, MessageSquare, Loader2, Brain, Upload, Trash2, CheckCircle, AlertCircle, Clock, Settings, Mic, Key, Code } from 'lucide-react';
+import { ArrowLeft, FileText, MessageSquare, Loader2, Brain, Upload, Trash2, CheckCircle, AlertCircle, Clock, Settings, Mic, Key, Code, RefreshCw } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { ChatInterface } from '@/components/ChatInterface';
 import { TrainingConfig } from '@/components/TrainingConfig';
@@ -172,6 +172,37 @@ export default function ProjectPage() {
     }
   };
 
+  const handleReprocessDocument = async (doc: DocumentItem) => {
+    try {
+      toast.info(`Re-procesando "${doc.name}"...`);
+      await supabase.from('documents').update({ status: 'processing' as any }).eq('id', doc.id);
+      setDocuments(prev => prev.map(d => d.id === doc.id ? { ...d, status: 'processing' as const } : d));
+      
+      const { error } = await supabase.functions.invoke('process-document', {
+        body: { documentId: doc.id },
+      });
+
+      if (error) throw error;
+      fetchProjectData();
+    } catch (error: any) {
+      toast.error(`Error al re-procesar: ${error.message}`);
+      fetchProjectData();
+    }
+  };
+
+  const handleReprocessAll = async () => {
+    const readyDocs = documents.filter(d => d.status === 'ready' || d.status === 'error');
+    if (readyDocs.length === 0) {
+      toast.info('No hay documentos para re-procesar');
+      return;
+    }
+    if (!confirm(`¿Re-procesar ${readyDocs.length} documento(s)? Esto extraerá el texto nuevamente.`)) return;
+
+    for (const doc of readyDocs) {
+      await handleReprocessDocument(doc);
+    }
+  };
+
   const getStatusIcon = (status: DocumentItem['status']) => {
     switch (status) {
       case 'ready': return <CheckCircle className="h-4 w-4 text-success" />;
@@ -258,6 +289,16 @@ export default function ProjectPage() {
           </TabsList>
 
           <TabsContent value="documents" className="space-y-6 animate-fade-in">
+            {/* Re-process all button */}
+            {documents.length > 0 && (
+              <div className="flex justify-end">
+                <Button variant="outline" size="sm" onClick={handleReprocessAll} className="flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Re-procesar todos
+                </Button>
+              </div>
+            )}
+
             {/* Upload zone */}
             <Card className="glass">
               <CardContent className="p-6">
@@ -326,6 +367,17 @@ export default function ProjectPage() {
                       </div>
                       <div className="flex items-center gap-3">
                         {getStatusBadge(doc.status)}
+                        {(doc.status === 'ready' || doc.status === 'error') && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-primary"
+                            onClick={() => handleReprocessDocument(doc)}
+                            title="Re-procesar documento"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        )}
                         {doc.status === 'ready' && (
                           <Button
                             variant="ghost"

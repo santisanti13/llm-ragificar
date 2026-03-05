@@ -6,28 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-async function generateEmbedding(text: string, apiKey: string): Promise<number[]> {
-  const response = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "text-embedding-3-small",
-      input: text.substring(0, 8000),
-      dimensions: 768,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Embedding error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.data[0].embedding;
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -55,7 +33,7 @@ serve(async (req) => {
 
     const lastUserMessage = messages?.filter((m: any) => m.role === "user").pop()?.content || "";
 
-    // Fetch training config (with new params) and examples
+    // Fetch training config and examples
     const [trainingRes, examplesRes] = await Promise.all([
       supabaseClient
         .from("project_training")
@@ -74,45 +52,43 @@ serve(async (req) => {
     const examples = examplesRes.data || [];
 
     const temperature = training?.temperature ?? 0.7;
-    const similarityThreshold = training?.similarity_threshold ?? 0.3;
     const matchCount = training?.match_count ?? 8;
     const model = training?.model || "google/gemini-2.5-flash";
 
-    // Semantic search
+    // Full-text search using the FTS function
     let context = "";
     let chunksUsed = 0;
 
     if (lastUserMessage) {
       try {
-        const queryEmbedding = await generateEmbedding(lastUserMessage, LOVABLE_API_KEY);
-        const { data: semanticChunks, error: matchError } = await supabaseAdmin.rpc("match_document_chunks", {
-          query_embedding: JSON.stringify(queryEmbedding),
-          match_project_id: projectId,
-          match_threshold: similarityThreshold,
-          match_count: matchCount,
+        const { data: ftsChunks, error: ftsError } = await supabaseAdmin.rpc("search_document_chunks_fts", {
+          search_query: lastUserMessage,
+          search_project_id: projectId,
+          max_results: matchCount,
         });
 
-        if (!matchError && semanticChunks && semanticChunks.length > 0) {
-          context = semanticChunks.map((c: any) => c.content).join("\n\n");
-          chunksUsed = semanticChunks.length;
-          console.log(`Semantic search: ${chunksUsed} chunks (threshold: ${similarityThreshold})`);
+        if (!ftsError && ftsChunks && ftsChunks.length > 0) {
+          context = ftsChunks.map((c: any) => c.content).join("\n\n");
+          chunksUsed = ftsChunks.length;
+          console.log(`FTS search: ${chunksUsed} chunks found`);
         }
       } catch (e) {
-        console.error("Semantic search failed, falling back to text:", e);
+        console.error("FTS search failed:", e);
       }
     }
 
-    // Fallback
+    // Fallback: get recent chunks if FTS found nothing
     if (!context) {
-      const { data: fallbackChunks } = await supabaseClient
+      const { data: fallbackChunks } = await supabaseAdmin
         .from("document_chunks")
         .select("content")
         .eq("project_id", projectId)
         .limit(10);
 
-      if (fallbackChunks) {
-        context = fallbackChunks.map((c) => c.content).join("\n\n");
+      if (fallbackChunks && fallbackChunks.length > 0) {
+        context = fallbackChunks.map((c: any) => c.content).join("\n\n");
         chunksUsed = fallbackChunks.length;
+        console.log(`Fallback: ${chunksUsed} chunks`);
       }
     }
 
@@ -125,7 +101,7 @@ serve(async (req) => {
 
     if (examples.length > 0) {
       systemPrompt += "\n\n## Ejemplos de cómo debes responder:\n";
-      examples.forEach((ex, i) => {
+      examples.forEach((ex: any, i: number) => {
         systemPrompt += `\n### Ejemplo ${i + 1}:\nPregunta: ${ex.question}\nRespuesta: ${ex.answer}\n`;
       });
       systemPrompt += "\nSigue el estilo de estos ejemplos al responder.";
@@ -167,7 +143,6 @@ serve(async (req) => {
       throw new Error(`AI error: ${response.status}`);
     }
 
-    // Stream the response
     return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });

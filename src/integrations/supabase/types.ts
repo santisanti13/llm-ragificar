@@ -68,6 +68,7 @@ export type Database = {
           created_at: string
           document_id: string
           embedding: string | null
+          fts: unknown
           id: string
           metadata: Json | null
           project_id: string
@@ -78,6 +79,7 @@ export type Database = {
           created_at?: string
           document_id: string
           embedding?: string | null
+          fts?: unknown
           id?: string
           metadata?: Json | null
           project_id: string
@@ -88,6 +90,7 @@ export type Database = {
           created_at?: string
           document_id?: string
           embedding?: string | null
+          fts?: unknown
           id?: string
           metadata?: Json | null
           project_id?: string
@@ -339,6 +342,20 @@ export type Database = {
           document_id: string
           id: string
           similarity: number
+        }[]
+      }
+      search_document_chunks_fts: {
+        Args: {
+          max_results?: number
+          search_project_id: string
+          search_query: string
+        }
+        Returns: {
+          chunk_index: number
+          content: string
+          document_id: string
+          id: string
+          rank: number
         }[]
       }
     }
