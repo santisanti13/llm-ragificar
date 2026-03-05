@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import type { ElementType } from 'react';
 import { Loader2, Sparkles, FileText, MessageSquare, ArrowLeft, CheckCircle } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,7 +79,7 @@ export default function Auth() {
           toast.error(error.message);
         }
       } else if (mode === 'signup') {
-        toast.success('¡Cuenta creada! Redirigiendo al dashboard...');
+        toast.success('¡Cuenta creada! Revisa tu email para confirmar tu cuenta.');
       }
     } finally {
       setIsSubmitting(false);
@@ -186,7 +187,7 @@ export default function Auth() {
         </div>
 
         <p className="relative text-muted-foreground text-sm">
-          © 2025 RAGify. Construido con Lovable.
+          © 2026 RAGify. Construido con Lovable.
         </p>
       </div>
 
@@ -390,7 +391,7 @@ export default function Auth() {
   );
 }
 
-function FeatureItem({ icon: Icon, title, description }: { icon: any; title: string; description: string }) {
+function FeatureItem({ icon: Icon, title, description }: { icon: React.ElementType; title: string; description: string }) {
   return (
     <div className="flex gap-4 p-4 rounded-xl bg-card/50 border border-border/50 card-interactive">
       <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
