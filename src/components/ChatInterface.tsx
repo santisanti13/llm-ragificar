@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,6 +17,8 @@ interface Message {
 interface ChatInterfaceProps {
   projectId: string;
 }
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rag-chat`;
 
 export function ChatInterface({ projectId }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -51,40 +52,113 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
       content: input.trim(),
       timestamp: new Date()
     };
-    setMessages(prev => [...prev, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInput('');
     setIsLoading(true);
 
+    const assistantId = generateId();
+    let assistantContent = '';
+
     try {
-      const response = await supabase.functions.invoke('rag-chat', {
-        body: {
-          projectId,
-          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+      const resp = await fetch(CHAT_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
+        body: JSON.stringify({
+          projectId,
+          messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
+        }),
       });
 
-      if (response.error) {
-        if (response.error.message?.includes('429')) {
-          toast.error('Límite de solicitudes excedido. Por favor espera un momento.');
-        } else if (response.error.message?.includes('402')) {
-          toast.error('Créditos agotados. Agrega más créditos en tu workspace.');
-        } else {
-          throw response.error;
+      if (!resp.ok) {
+        if (resp.status === 429) {
+          toast.error('Límite de solicitudes excedido. Espera un momento.');
+          return;
         }
-        return;
+        if (resp.status === 402) {
+          toast.error('Créditos agotados. Agrega más créditos en tu workspace.');
+          return;
+        }
+        throw new Error(`Error ${resp.status}`);
       }
 
-      const assistantMessage: Message = {
-        id: generateId(),
-        role: 'assistant',
-        content: response.data.response,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+      if (!resp.body) throw new Error('No stream body');
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = '';
+      let streamDone = false;
+
+      // Add empty assistant message
+      setMessages(prev => [...prev, { id: assistantId, role: 'assistant', content: '', timestamp: new Date() }]);
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith('\r')) line = line.slice(0, -1);
+          if (line.startsWith(':') || line.trim() === '') continue;
+          if (!line.startsWith('data: ')) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === '[DONE]') {
+            streamDone = true;
+            break;
+          }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantContent += content;
+              const updated = assistantContent;
+              setMessages(prev =>
+                prev.map(m => m.id === assistantId ? { ...m, content: updated } : m)
+              );
+            }
+          } catch {
+            textBuffer = line + '\n' + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Final flush
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split('\n')) {
+          if (!raw) continue;
+          if (raw.endsWith('\r')) raw = raw.slice(0, -1);
+          if (raw.startsWith(':') || raw.trim() === '') continue;
+          if (!raw.startsWith('data: ')) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) {
+              assistantContent += content;
+              const updated = assistantContent;
+              setMessages(prev =>
+                prev.map(m => m.id === assistantId ? { ...m, content: updated } : m)
+              );
+            }
+          } catch { /* ignore */ }
+        }
+      }
     } catch (error: any) {
       console.error('Chat error:', error);
       toast.error('Error al procesar tu mensaje');
-      setMessages(prev => prev.slice(0, -1));
+      // Remove assistant message if empty, and the user message
+      setMessages(prev => prev.filter(m => !(m.id === assistantId && !m.content)).slice(0, -1));
     } finally {
       setIsLoading(false);
       inputRef.current?.focus();
@@ -108,7 +182,7 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
         <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-card/50">
           <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-            <span className="text-sm font-medium text-muted-foreground">RAG Chat</span>
+            <span className="text-sm font-medium text-muted-foreground">RAG Chat — Streaming</span>
           </div>
           {messages.length > 0 && (
             <Button
@@ -139,7 +213,7 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
                 <h3 className="text-2xl font-semibold mb-3">Chatea con tus documentos</h3>
                 <p className="text-muted-foreground max-w-md mb-8 leading-relaxed">
                   Hazme preguntas sobre el contenido de tus documentos. 
-                  Usaré RAG para encontrar la información más relevante.
+                  Las respuestas se muestran en tiempo real con streaming.
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center max-w-lg">
                   {suggestedQuestions.map((suggestion) => (
@@ -213,8 +287,7 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
                           <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
                         )}
                       </div>
-                      {/* Copy button for assistant messages */}
-                      {message.role === 'assistant' && (
+                      {message.role === 'assistant' && message.content && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -236,7 +309,7 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
                     )}
                   </div>
                 ))}
-                {isLoading && (
+                {isLoading && messages[messages.length - 1]?.role !== 'assistant' && (
                   <div className="flex gap-3 animate-fade-in">
                     <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20">
                       <Bot className="h-5 w-5 text-primary-foreground" />
@@ -248,7 +321,7 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
                           <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                           <span className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
-                        <span className="text-sm text-muted-foreground">Pensando...</span>
+                        <span className="text-sm text-muted-foreground">Buscando en documentos...</span>
                       </div>
                     </div>
                   </div>

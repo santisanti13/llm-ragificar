@@ -205,27 +205,45 @@ export type Database = {
       }
       project_training: {
         Row: {
+          chunk_overlap: number | null
+          chunk_size: number | null
           created_at: string
           first_message: string | null
           id: string
+          match_count: number | null
+          model: string | null
           project_id: string
+          similarity_threshold: number | null
           system_prompt: string | null
+          temperature: number | null
           updated_at: string
         }
         Insert: {
+          chunk_overlap?: number | null
+          chunk_size?: number | null
           created_at?: string
           first_message?: string | null
           id?: string
+          match_count?: number | null
+          model?: string | null
           project_id: string
+          similarity_threshold?: number | null
           system_prompt?: string | null
+          temperature?: number | null
           updated_at?: string
         }
         Update: {
+          chunk_overlap?: number | null
+          chunk_size?: number | null
           created_at?: string
           first_message?: string | null
           id?: string
+          match_count?: number | null
+          model?: string | null
           project_id?: string
+          similarity_threshold?: number | null
           system_prompt?: string | null
+          temperature?: number | null
           updated_at?: string
         }
         Relationships: [

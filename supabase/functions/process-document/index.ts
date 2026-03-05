@@ -30,6 +30,48 @@ async function generateEmbedding(text: string, apiKey: string): Promise<number[]
   return data.data[0].embedding;
 }
 
+function chunkText(text: string, chunkSize: number, chunkOverlap: number): string[] {
+  const paragraphs = text.split(/\n\n+/);
+  const chunks: string[] = [];
+  let currentChunk = "";
+
+  for (const para of paragraphs) {
+    if ((currentChunk + para).length > chunkSize) {
+      if (currentChunk) {
+        chunks.push(currentChunk.trim());
+        // Apply overlap: keep the last `chunkOverlap` chars
+        if (chunkOverlap > 0 && currentChunk.length > chunkOverlap) {
+          currentChunk = currentChunk.slice(-chunkOverlap) + "\n\n" + para;
+        } else {
+          currentChunk = para;
+        }
+      } else {
+        // Single paragraph exceeds chunk size - split by sentences
+        if (para.length > chunkSize) {
+          const sentences = para.split(/(?<=[.!?])\s+/);
+          let sentenceChunk = "";
+          for (const sentence of sentences) {
+            if ((sentenceChunk + sentence).length > chunkSize) {
+              if (sentenceChunk) chunks.push(sentenceChunk.trim());
+              sentenceChunk = sentence;
+            } else {
+              sentenceChunk += (sentenceChunk ? " " : "") + sentence;
+            }
+          }
+          currentChunk = sentenceChunk;
+        } else {
+          currentChunk = para;
+        }
+      }
+    } else {
+      currentChunk += (currentChunk ? "\n\n" : "") + para;
+    }
+  }
+  if (currentChunk) chunks.push(currentChunk.trim());
+
+  return chunks.filter(c => c.length > 50);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -54,32 +96,29 @@ serve(async (req) => {
 
     if (docError || !doc) throw new Error("Document not found");
 
+    // Fetch project training config for chunk settings
+    const { data: trainingConfig } = await supabaseAdmin
+      .from("project_training")
+      .select("chunk_size, chunk_overlap")
+      .eq("project_id", doc.project_id)
+      .maybeSingle();
+
+    const chunkSize = trainingConfig?.chunk_size ?? 1000;
+    const chunkOverlap = trainingConfig?.chunk_overlap ?? 200;
+
+    console.log(`Chunking with size=${chunkSize}, overlap=${chunkOverlap}`);
+
     const { data: fileData, error: downloadError } = await supabaseAdmin.storage
       .from("documents").download(doc.file_path);
 
     if (downloadError) throw new Error(`Failed to download: ${downloadError.message}`);
 
     const text = await fileData.text();
-    const chunks: string[] = [];
-    const paragraphs = text.split(/\n\n+/);
-    let currentChunk = "";
-
-    for (const para of paragraphs) {
-      if ((currentChunk + para).length > 1000) {
-        if (currentChunk) chunks.push(currentChunk.trim());
-        currentChunk = para;
-      } else {
-        currentChunk += (currentChunk ? "\n\n" : "") + para;
-      }
-    }
-    if (currentChunk) chunks.push(currentChunk.trim());
-
-    const validChunks = chunks.filter(c => c.length > 50);
+    const validChunks = chunkText(text, chunkSize, chunkOverlap);
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (validChunks.length > 0) {
-      // Generate embeddings for each chunk
       const chunkRecords = [];
       for (let index = 0; index < validChunks.length; index++) {
         const content = validChunks[index];
@@ -88,10 +127,9 @@ serve(async (req) => {
         if (LOVABLE_API_KEY) {
           try {
             embedding = await generateEmbedding(content, LOVABLE_API_KEY);
-            console.log(`Embedding generated for chunk ${index + 1}/${validChunks.length}`);
+            console.log(`Embedding ${index + 1}/${validChunks.length}`);
           } catch (e) {
-            console.error(`Failed to generate embedding for chunk ${index}:`, e);
-            // Continue without embedding rather than failing the whole process
+            console.error(`Embedding failed for chunk ${index}:`, e);
           }
         }
 
@@ -113,7 +151,7 @@ serve(async (req) => {
 
     await supabaseAdmin.from("documents").update({ status: "ready", chunk_count: validChunks.length }).eq("id", documentId);
 
-    console.log(`Document processed: ${validChunks.length} chunks with embeddings`);
+    console.log(`Document processed: ${validChunks.length} chunks (size=${chunkSize}, overlap=${chunkOverlap})`);
 
     return new Response(JSON.stringify({ success: true, chunks: validChunks.length }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
