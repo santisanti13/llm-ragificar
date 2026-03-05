@@ -32,10 +32,9 @@ export default function Index() {
   }
 
   const navLinks = [
-    { label: 'OVERVIEW', href: '#features' },
-    { label: 'BENEFITS', href: '#benefits' },
-    { label: 'HOW IT WORKS', href: '#how-it-works' },
-    { label: 'PRICING', href: '#pricing' },
+    { label: 'BENEFICIOS', href: '#benefits' },
+    { label: 'CÓMO FUNCIONA', href: '#how-it-works' },
+    { label: 'PRECIOS', href: '#pricing' },
     { label: 'FAQ', href: '#faq' },
   ];
 
@@ -68,14 +67,14 @@ export default function Index() {
               onClick={() => navigate('/auth')}
               className="hidden sm:flex font-mono text-xs tracking-wider"
             >
-              LOG IN
+              INGRESAR
             </Button>
             <Button
               size="sm"
               onClick={() => navigate('/auth')}
               className="gradient-primary font-mono text-xs tracking-wider px-5"
             >
-              START FREE
+              EMPEZAR GRATIS
             </Button>
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -97,7 +96,7 @@ export default function Index() {
                 </a>
               ))}
               <Button variant="outline" size="sm" onClick={() => { navigate('/auth'); setMobileMenuOpen(false); }} className="w-full mt-2 font-mono text-xs tracking-wider">
-                LOG IN
+                INGRESAR
               </Button>
             </div>
           </div>
@@ -116,17 +115,17 @@ export default function Index() {
 
           {/* Giant headline */}
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-extrabold leading-[0.9] tracking-tight mb-8">
-            Build your{' '}
+            Construye tu{' '}
             <br className="hidden md:block" />
-            <span className="text-gradient">AI Knowledge</span>
+            <span className="text-gradient">API de</span>
             <br />
-            API.
+            <span className="text-gradient">Conocimiento IA.</span>
           </h1>
 
           {/* Subtitle - monospaced */}
           <p className="font-mono text-sm md:text-base text-muted-foreground max-w-xl mb-10 leading-relaxed">
-            Upload documents, train with your data, and deploy a production-ready
-            RAG endpoint in minutes. No ML. No DevOps.
+            Sube documentos, entrena con tus datos y despliega un endpoint RAG
+            listo para producción en minutos. Sin ML. Sin DevOps.
           </p>
 
           {/* CTA */}
@@ -135,7 +134,7 @@ export default function Index() {
             className="gradient-primary h-14 px-10 font-mono text-sm tracking-wider rounded-none hover:opacity-90 transition-opacity"
             onClick={() => navigate('/auth')}
           >
-            START FREE →
+            EMPEZAR GRATIS →
           </Button>
         </div>
       </section>
@@ -147,9 +146,9 @@ export default function Index() {
       <section className="py-16 border-b border-border">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-3 divide-x divide-border">
-            <StatBlock value="3 min" label="SETUP TIME" />
-            <StatBlock value="99.9%" label="UPTIME GUARANTEED" />
-            <StatBlock value="<100ms" label="AVG LATENCY" />
+            <StatBlock value="3 min" label="TIEMPO DE SETUP" />
+            <StatBlock value="99.9%" label="UPTIME GARANTIZADO" />
+            <StatBlock value="<100ms" label="LATENCIA PROMEDIO" />
           </div>
         </div>
       </section>
@@ -157,41 +156,41 @@ export default function Index() {
       {/* Benefits Section - Numbered cards like TinyFish */}
       <section id="benefits" className="py-24 md:py-32">
         <div className="container mx-auto px-6">
-          <p className="font-mono text-xs tracking-widest text-muted-foreground mb-4">What You Get</p>
+          <p className="font-mono text-xs tracking-widest text-muted-foreground mb-4">Qué Incluye</p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-16 max-w-2xl">
-            Everything you need for RAG in production.
+            Todo lo que necesitas para RAG en producción.
           </h2>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-px bg-border">
             <BenefitCard
               number="01"
-              title="Document Processing"
-              description="PDFs, Word, Excel, images with OCR, URLs. We process, chunk, and vectorize automatically with high-dimensional embeddings."
+              title="Procesamiento de Documentos"
+              description="PDFs, Word, Excel, imágenes con OCR, URLs. Procesamos, fragmentamos y vectorizamos automáticamente con embeddings de alta dimensión."
             />
             <BenefitCard
               number="02"
-              title="No-Code Training"
-              description="Define how your assistant responds with system prompts and Q&A examples. Control tone, format, and precision without touching a model."
+              title="Entrenamiento Sin Código"
+              description="Define cómo responde tu asistente con system prompts y ejemplos Q&A. Controla tono, formato y precisión sin tocar un modelo."
             />
             <BenefitCard
               number="03"
-              title="REST API in Minutes"
-              description="A single endpoint with API key auth. Examples in cURL, Python, JavaScript, and more. Integrate with any stack."
+              title="API REST en Minutos"
+              description="Un solo endpoint con autenticación por API key. Ejemplos en cURL, Python, JavaScript y más. Integra con cualquier stack."
             />
             <BenefitCard
               number="04"
-              title="Enterprise Security"
-              description="Encrypted documents, isolated per project. Your data is never shared with third parties or used to train models."
+              title="Seguridad Empresarial"
+              description="Documentos encriptados, aislados por proyecto. Tus datos nunca se comparten con terceros ni se usan para entrenar modelos."
             />
             <BenefitCard
               number="05"
-              title="Real-Time Analytics"
-              description="Track queries, latency, token usage, and confidence scores. Understand how your knowledge base performs."
+              title="Analíticas en Tiempo Real"
+              description="Monitorea consultas, latencia, uso de tokens y scores de confianza. Entiende cómo rinde tu base de conocimiento."
             />
             <BenefitCard
               number="06"
-              title="Webhook Integrations"
-              description="Connect to n8n, Zapier, Make, and any HTTP-compatible tool. Automate workflows with your RAG endpoint."
+              title="Integraciones con Webhooks"
+              description="Conecta con n8n, Zapier, Make y cualquier herramienta compatible con HTTP. Automatiza flujos con tu endpoint RAG."
             />
           </div>
         </div>
@@ -200,33 +199,33 @@ export default function Index() {
       {/* How It Works - Timeline style */}
       <section id="how-it-works" className="py-24 md:py-32 border-t border-border">
         <div className="container mx-auto px-6">
-          <p className="font-mono text-xs tracking-widest text-muted-foreground mb-4">How It Works</p>
+          <p className="font-mono text-xs tracking-widest text-muted-foreground mb-4">Cómo Funciona</p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-20 max-w-3xl">
-            From zero to API.{' '}
-            <span className="text-primary">3 simple steps.</span>
+            De cero a API.{' '}
+            <span className="text-primary">3 pasos simples.</span>
           </h2>
 
           <div className="space-y-0 border-t border-border">
             <TimelineStep
               number="01"
-              title="Upload"
+              title="Sube"
               duration="2 min"
-              description="Drag PDFs, images, Word docs, or paste URLs. We extract, clean, and vectorize automatically."
-              details={['PDFs, Word, images with OCR', 'URL scraping', 'Automatic semantic chunking']}
+              description="Arrastra PDFs, imágenes, documentos Word o pega URLs. Extraemos, limpiamos y vectorizamos automáticamente."
+              details={['PDFs, Word, imágenes con OCR', 'Scraping de URLs', 'Chunking semántico automático']}
             />
             <TimelineStep
               number="02"
-              title="Train"
+              title="Entrena"
               duration="5 min"
-              description="Define how your assistant should respond with custom system prompts and few-shot Q&A examples."
-              details={['Custom system prompts', 'Q&A examples', 'Tone and style control']}
+              description="Define cómo debe responder tu asistente con system prompts personalizados y ejemplos Q&A."
+              details={['System prompts personalizados', 'Ejemplos Q&A', 'Control de tono y estilo']}
             />
             <TimelineStep
               number="03"
-              title="Deploy"
-              duration="Instant"
-              description="Copy your endpoint and API key. Make your first query in seconds with any language."
-              details={['REST API endpoint', 'Optional streaming', 'Full documentation']}
+              title="Despliega"
+              duration="Instantáneo"
+              description="Copia tu endpoint y API key. Haz tu primera consulta en segundos con cualquier lenguaje."
+              details={['Endpoint API REST', 'Streaming opcional', 'Documentación completa']}
             />
           </div>
         </div>
@@ -238,13 +237,13 @@ export default function Index() {
           <div className="max-w-5xl mx-auto">
             <div className="grid lg:grid-cols-2 gap-16 items-center">
               <div>
-                <p className="font-mono text-xs tracking-widest text-primary mb-4">INTEGRATION</p>
-                <h2 className="text-3xl md:text-4xl font-bold mb-6">One API call.<br />That's it.</h2>
+                <p className="font-mono text-xs tracking-widest text-primary mb-4">INTEGRACIÓN</p>
+                <h2 className="text-3xl md:text-4xl font-bold mb-6">Una llamada API.<br />Eso es todo.</h2>
                 <p className="text-muted-foreground mb-8 leading-relaxed">
-                  No complicated SDKs. No model configuration. Just a POST with your question and get the answer.
+                  Sin SDKs complicados. Sin configuración de modelos. Solo un POST con tu pregunta y obtén la respuesta.
                 </p>
                 <div className="space-y-4">
-                  {['Contextual answers from your documents', 'Optional streaming for fluid UX', 'Chunk metadata in every response'].map((item, i) => (
+                  {['Respuestas contextuales de tus documentos', 'Streaming opcional para UX fluida', 'Metadata de chunks en cada respuesta'].map((item, i) => (
                     <div key={i} className="flex items-start gap-3">
                       <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
                         <Check className="h-3 w-3" />
@@ -297,35 +296,35 @@ console.log(data.answer);`}
       {/* Pricing */}
       <section id="pricing" className="py-24 md:py-32 border-t border-border">
         <div className="container mx-auto px-6">
-          <p className="font-mono text-xs tracking-widest text-muted-foreground mb-4">Pricing</p>
+          <p className="font-mono text-xs tracking-widest text-muted-foreground mb-4">Precios</p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 max-w-2xl">
-            Start free. Scale when ready.
+            Empieza gratis. Escala cuando quieras.
           </h2>
-          <p className="text-muted-foreground mb-16 max-w-xl">No surprises. Pay only for what you use.</p>
+          <p className="text-muted-foreground mb-16 max-w-xl">Sin sorpresas. Paga solo por lo que usas.</p>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-border">
             <PricingCard
               name="Free"
               price="$0"
-              period="/mo"
-              description="For testing and personal projects"
-              features={['1 project', '50 queries/mo', '25MB storage', 'API docs', 'Community support']}
+              period="/mes"
+              description="Para pruebas y proyectos personales"
+              features={['1 proyecto', '50 consultas/mes', '25MB almacenamiento', 'Docs de API', 'Soporte comunidad']}
               onCtaClick={() => navigate('/auth')}
             />
             <PricingCard
               name="Starter"
               price="$15"
-              period="/mo"
-              description="For growing projects"
-              features={['3 projects', '1K queries/mo', '200MB storage', 'Basic analytics', 'Email support']}
+              period="/mes"
+              description="Para proyectos en crecimiento"
+              features={['3 proyectos', '1K consultas/mes', '200MB almacenamiento', 'Analíticas básicas', 'Soporte por email']}
               onCtaClick={() => navigate('/auth')}
             />
             <PricingCard
               name="Pro"
               price="$49"
-              period="/mo"
-              description="For startups and teams"
-              features={['10 projects', '10K queries/mo', '1GB storage', 'Advanced analytics', 'Priority support', 'Webhooks']}
+              period="/mes"
+              description="Para startups y equipos"
+              features={['10 proyectos', '10K consultas/mes', '1GB almacenamiento', 'Analíticas avanzadas', 'Soporte prioritario', 'Webhooks']}
               highlighted
               onCtaClick={() => navigate('/auth')}
             />
@@ -333,8 +332,8 @@ console.log(data.answer);`}
               name="Enterprise"
               price="Custom"
               period=""
-              description="For large organizations"
-              features={['Unlimited projects', 'Unlimited queries', 'Unlimited storage', 'SSO / SAML', 'Dedicated support', 'SLA 99.99%']}
+              description="Para grandes organizaciones"
+              features={['Proyectos ilimitados', 'Consultas ilimitadas', 'Almacenamiento ilimitado', 'SSO / SAML', 'Soporte dedicado', 'SLA 99.99%']}
               onCtaClick={() => navigate('/auth')}
             />
           </div>
@@ -346,18 +345,18 @@ console.log(data.answer);`}
         <div className="container mx-auto px-6">
           <p className="font-mono text-xs tracking-widest text-muted-foreground mb-4">FAQ</p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-16 max-w-2xl">
-            Common questions, straight answers.
+            Preguntas frecuentes, respuestas directas.
           </h2>
 
           <div className="max-w-3xl">
             <Accordion type="single" collapsible className="space-y-0 border-t border-border">
               {[
-                { q: 'What document types can I upload?', a: 'We support PDF, Word (.docx), Excel (.xlsx), images (with automatic OCR), Markdown, and HTML files. Each document is processed, chunked intelligently, and vectorized automatically.' },
-                { q: 'How does the API work?', a: 'You get a unique REST endpoint per project. Send a POST with your question and receive an AI-generated answer with context from your documents. Includes API Key auth and rate limiting.' },
-                { q: 'Is it secure for sensitive data?', a: 'Yes. All documents are encrypted at rest (AES-256) and in transit (TLS 1.3). Data is completely isolated per project and never used to train third-party models.' },
-                { q: 'Can I cancel anytime?', a: 'Absolutely. No contracts, no minimum commitment. Change plans or cancel from your dashboard at any time.' },
-                { q: 'What AI models do you use?', a: 'We use state-of-the-art models like GPT-5 and Gemini for response generation, and text-embedding-3-small for vector embeddings. Models are updated automatically.' },
-                { q: 'Can I integrate with no-code tools?', a: 'Yes. We offer webhooks compatible with n8n, Zapier, and Make. You can also use our REST API directly from any tool that supports HTTP.' },
+                { q: '¿Qué tipos de documentos puedo subir?', a: 'Soportamos PDF, Word (.docx), Excel (.xlsx), imágenes (con OCR automático), Markdown y archivos HTML. Cada documento se procesa, fragmenta inteligentemente y vectoriza automáticamente.' },
+                { q: '¿Cómo funciona la API?', a: 'Obtienes un endpoint REST único por proyecto. Envía un POST con tu pregunta y recibe una respuesta generada por IA con contexto de tus documentos. Incluye autenticación por API Key y rate limiting.' },
+                { q: '¿Es seguro para datos sensibles?', a: 'Sí. Todos los documentos están encriptados en reposo (AES-256) y en tránsito (TLS 1.3). Los datos están completamente aislados por proyecto y nunca se usan para entrenar modelos de terceros.' },
+                { q: '¿Puedo cancelar en cualquier momento?', a: 'Por supuesto. Sin contratos, sin compromiso mínimo. Cambia de plan o cancela desde tu dashboard en cualquier momento.' },
+                { q: '¿Qué modelos de IA usan?', a: 'Usamos modelos de última generación como GPT-5 y Gemini para generación de respuestas, y text-embedding-3-small para embeddings vectoriales. Los modelos se actualizan automáticamente.' },
+                { q: '¿Puedo integrar con herramientas no-code?', a: 'Sí. Ofrecemos webhooks compatibles con n8n, Zapier y Make. También puedes usar nuestra API REST directamente desde cualquier herramienta que soporte HTTP.' },
               ].map((faq, i) => (
                 <AccordionItem key={i} value={`faq-${i}`} className="border-b border-border py-2">
                   <AccordionTrigger className="text-left font-medium hover:no-underline gap-4">
@@ -377,32 +376,32 @@ console.log(data.answer);`}
         <div className="container mx-auto px-6">
           <div className="max-w-4xl">
             <p className="font-mono text-xs tracking-widest text-muted-foreground mb-6">
-              Every great AI product starts with great knowledge
+              Todo gran producto de IA empieza con gran conocimiento
             </p>
             <h2 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold mb-10 leading-[0.95]">
-              Ready to build your{' '}
-              <span className="text-gradient">Knowledge API?</span>
+              ¿Listo para construir tu{' '}
+              <span className="text-gradient">API de Conocimiento?</span>
             </h2>
             <Button
               size="lg"
               className="gradient-primary h-14 px-10 font-mono text-sm tracking-wider rounded-none hover:opacity-90 transition-opacity"
               onClick={() => navigate('/auth')}
             >
-              START FREE →
+              EMPEZAR GRATIS →
             </Button>
 
             <div className="flex flex-wrap gap-8 mt-12 pt-8 border-t border-border">
               <div>
                 <span className="text-2xl md:text-3xl font-bold">$0</span>
-                <p className="text-xs font-mono text-muted-foreground mt-1">TO GET STARTED</p>
+                <p className="text-xs font-mono text-muted-foreground mt-1">PARA EMPEZAR</p>
               </div>
               <div>
                 <span className="text-2xl md:text-3xl font-bold">3 min</span>
-                <p className="text-xs font-mono text-muted-foreground mt-1">SETUP TIME</p>
+                <p className="text-xs font-mono text-muted-foreground mt-1">TIEMPO DE SETUP</p>
               </div>
               <div>
                 <span className="text-2xl md:text-3xl font-bold">100%</span>
-                <p className="text-xs font-mono text-muted-foreground mt-1">YOUR DATA</p>
+                <p className="text-xs font-mono text-muted-foreground mt-1">TUS DATOS</p>
               </div>
             </div>
           </div>
@@ -420,22 +419,22 @@ console.log(data.answer);`}
             </div>
 
             <div>
-              <h4 className="font-mono text-xs tracking-widest mb-4">PRODUCT</h4>
+              <h4 className="font-mono text-xs tracking-widest mb-4">PRODUCTO</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#features" className="hover:text-foreground transition-colors">Features</a></li>
-                <li><a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a></li>
+                <li><a href="#benefits" className="hover:text-foreground transition-colors">Beneficios</a></li>
+                <li><a href="#pricing" className="hover:text-foreground transition-colors">Precios</a></li>
                 <li><a href="#" className="hover:text-foreground transition-colors">Changelog</a></li>
                 <li><a href="#" className="hover:text-foreground transition-colors">Roadmap</a></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-mono text-xs tracking-widest mb-4">RESOURCES</h4>
+              <h4 className="font-mono text-xs tracking-widest mb-4">RECURSOS</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><button onClick={() => navigate('/docs')} className="hover:text-foreground transition-colors">Documentation</button></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">API Reference</a></li>
+                <li><button onClick={() => navigate('/docs')} className="hover:text-foreground transition-colors">Documentación</button></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Referencia API</a></li>
                 <li><a href="#" className="hover:text-foreground transition-colors">Blog</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Guides</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Guías</a></li>
               </ul>
             </div>
 
@@ -450,17 +449,17 @@ console.log(data.answer);`}
             </div>
 
             <div>
-              <h4 className="font-mono text-xs tracking-widest mb-4">COMPANY</h4>
+              <h4 className="font-mono text-xs tracking-widest mb-4">EMPRESA</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-foreground transition-colors">About</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Contact</a></li>
-                <li><a href="#" className="hover:text-foreground transition-colors">Careers</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Nosotros</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Contacto</a></li>
+                <li><a href="#" className="hover:text-foreground transition-colors">Empleo</a></li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-xs font-mono text-muted-foreground">© 2025 RAGify. All rights reserved.</p>
+            <p className="text-xs font-mono text-muted-foreground">© 2026 RAGify. Todos los derechos reservados.</p>
             <div className="flex items-center gap-4">
               <a href="#" className="text-muted-foreground hover:text-foreground transition-colors"><Twitter className="h-4 w-4" /></a>
               <a href="#" className="text-muted-foreground hover:text-foreground transition-colors"><Github className="h-4 w-4" /></a>
@@ -478,14 +477,14 @@ console.log(data.answer);`}
 
 function MarqueeTicker() {
   const items = [
-    'RAG AS A SERVICE',
-    'NO ML REQUIRED',
-    'PRODUCTION READY',
-    'AES-256 ENCRYPTION',
-    'REAL EMBEDDINGS',
-    '< 100ms LATENCY',
-    'REST API',
-    'SEMANTIC SEARCH',
+    'RAG COMO SERVICIO',
+    'SIN ML REQUERIDO',
+    'LISTO PARA PRODUCCIÓN',
+    'ENCRIPTACIÓN AES-256',
+    'EMBEDDINGS REALES',
+    '< 100ms LATENCIA',
+    'API REST',
+    'BÚSQUEDA SEMÁNTICA',
   ];
 
   return (
@@ -576,7 +575,7 @@ function PricingCard({ name, price, period, description, features, highlighted, 
         variant={highlighted ? 'default' : 'outline'}
         onClick={onCtaClick}
       >
-        {price === 'Custom' ? 'CONTACT SALES' : 'GET STARTED'}
+        {price === 'Custom' ? 'CONTACTAR VENTAS' : 'EMPEZAR'}
       </Button>
     </div>
   );
