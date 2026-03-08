@@ -65,6 +65,24 @@ export function ApiKeysManager({ projectId }: ApiKeysManagerProps) {
 
       if (error) throw error;
       setApiKeys(data || []);
+
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: logsData, error: logsError } = await supabase
+        .from('api_query_logs')
+        .select('api_key_id')
+        .eq('project_id', projectId)
+        .gte('created_at', weekAgo)
+        .not('api_key_id', 'is', null);
+        
+      if (!logsError && logsData) {
+        const counts: Record<string, number> = {};
+        logsData.forEach(log => {
+          if (log.api_key_id) {
+            counts[log.api_key_id] = (counts[log.api_key_id] || 0) + 1;
+          }
+        });
+        setKeyStats(counts);
+      }
     } catch (error) {
       console.error('Error fetching API keys:', error);
     } finally {
