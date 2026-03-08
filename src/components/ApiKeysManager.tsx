@@ -49,6 +49,7 @@ export function ApiKeysManager({ projectId }: ApiKeysManagerProps) {
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showNewKey, setShowNewKey] = useState(false);
+  const [keyStats, setKeyStats] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchApiKeys();
