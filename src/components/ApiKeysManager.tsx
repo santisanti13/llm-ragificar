@@ -49,6 +49,7 @@ export function ApiKeysManager({ projectId }: ApiKeysManagerProps) {
   const [newlyCreatedKey, setNewlyCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [showNewKey, setShowNewKey] = useState(false);
+  const [keyStats, setKeyStats] = useState<Record<string, number>>({});
 
   useEffect(() => {
     fetchApiKeys();
@@ -64,6 +65,25 @@ export function ApiKeysManager({ projectId }: ApiKeysManagerProps) {
 
       if (error) throw error;
       setApiKeys(data || []);
+
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data: logsData, error: logsError } = await supabase
+        .from('api_query_logs')
+        .select('api_key_id')
+        .eq('project_id', projectId)
+        .gte('created_at', weekAgo)
+        .not('api_key_id', 'is', null);
+        
+      if (!logsError && logsData) {
+        const counts: Record<string, number> = {};
+        // Use any here to avoid TS errors before types are regenerated
+        logsData.forEach((log: any) => {
+          if (log.api_key_id) {
+            counts[log.api_key_id] = (counts[log.api_key_id] || 0) + 1;
+          }
+        });
+        setKeyStats(counts);
+      }
     } catch (error) {
       console.error('Error fetching API keys:', error);
     } finally {
@@ -268,6 +288,13 @@ export function ApiKeysManager({ projectId }: ApiKeysManagerProps) {
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                     <span className="font-mono">rag_...{key.key_prefix}</span>
                     <span>Último uso: {formatDate(key.last_used_at)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1 text-xs">
+                    <span className="flex items-center gap-1 font-medium text-primary">
+                      <span className="inline-block w-2 h-2 rounded-full bg-primary/70"></span>
+                      {keyStats[key.id] || 0} llamadas esta semana
+                    </span>
+                    <span className="text-muted-foreground opacity-70">(límite 100/min)</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">

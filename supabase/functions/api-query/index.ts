@@ -94,6 +94,32 @@ serve(async (req) => {
       });
     }
 
+    // --- Rate Limiting ---
+    const windowStart = new Date(Math.floor(Date.now() / 60000) * 60000).toISOString();
+    const { data: currentLimit } = await supabaseClient
+      .from("api_key_rate_limits")
+      .select("request_count")
+      .eq("api_key_id", apiKeyRecord.id)
+      .eq("window_start", windowStart)
+      .maybeSingle();
+      
+    const currentCount = currentLimit ? currentLimit.request_count : 0;
+    
+    if (currentCount >= 100) {
+      return new Response(JSON.stringify({ error: "Too Many Requests", message: "Rate limit exceeded (100 req/min)." }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+
+    await supabaseClient
+      .from("api_key_rate_limits")
+      .upsert({ 
+        api_key_id: apiKeyRecord.id, 
+        window_start: windowStart,
+        request_count: currentCount + 1
+      }, { onConflict: "api_key_id, window_start" });
+    // ---------------------
+
     await supabaseClient.from("project_api_keys").update({ last_used_at: new Date().toISOString() }).eq("id", apiKeyRecord.id);
 
     const { data: project, error: projectError } = await supabaseClient
@@ -214,6 +240,7 @@ serve(async (req) => {
     await supabaseClient.from("api_query_logs").insert({
       project_id,
       user_id: project.user_id,
+      api_key_id: apiKeyRecord.id,
       query: queryText.substring(0, 1000),
       response_preview: assistantMessage.substring(0, 200),
       tokens_used: totalTokens,
