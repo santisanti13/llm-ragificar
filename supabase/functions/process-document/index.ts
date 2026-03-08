@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // Use Gemini to extract text from PDF binary data
@@ -93,6 +93,33 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // --- Authentication ---
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const supabaseAuth = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+    { global: { headers: { Authorization: authHeader } } }
+  );
+
+  const token = authHeader.replace("Bearer ", "");
+  const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+  if (claimsError || !claimsData?.claims) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const userId = claimsData.claims.sub;
+
+  // Admin client for processing operations
   const supabaseAdmin = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -103,14 +130,27 @@ serve(async (req) => {
   try {
     const body = await req.json();
     documentId = body.documentId;
-    console.log("Processing document:", documentId);
+    console.log("Processing document:", documentId, "by user:", userId);
 
-    await supabaseAdmin.from("documents").update({ status: "processing" }).eq("id", documentId);
-
+    // Verify document ownership
     const { data: doc, error: docError } = await supabaseAdmin
       .from("documents").select("*").eq("id", documentId).single();
 
-    if (docError || !doc) throw new Error("Document not found");
+    if (docError || !doc) {
+      return new Response(JSON.stringify({ error: "Document not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (doc.user_id !== userId) {
+      return new Response(JSON.stringify({ error: "Forbidden: you do not own this document" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    await supabaseAdmin.from("documents").update({ status: "processing" }).eq("id", documentId);
 
     // Fetch project training config for chunk settings
     const { data: trainingConfig } = await supabaseAdmin
@@ -166,7 +206,6 @@ serve(async (req) => {
     await supabaseAdmin.from("document_chunks").delete().eq("document_id", documentId);
 
     if (validChunks.length > 0) {
-      // Insert chunks WITHOUT embeddings - rely on FTS instead
       const chunkRecords = validChunks.map((content, index) => ({
         document_id: documentId,
         project_id: doc.project_id,

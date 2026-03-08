@@ -12,14 +12,31 @@ serve(async (req) => {
   }
 
   try {
-    const { projectId, messages } = await req.json();
+    // --- Authentication ---
     const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader! } } }
+      { global: { headers: { Authorization: authHeader } } }
     );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub;
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -29,7 +46,23 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    console.log("RAG chat for project:", projectId);
+    const { projectId, messages } = await req.json();
+
+    // Verify project ownership
+    const { data: project, error: projectError } = await supabaseAdmin
+      .from("projects")
+      .select("id, user_id")
+      .eq("id", projectId)
+      .single();
+
+    if (projectError || !project || project.user_id !== userId) {
+      return new Response(JSON.stringify({ error: "Project not found or unauthorized" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    console.log("RAG chat for project:", projectId, "by user:", userId);
 
     const lastUserMessage = messages?.filter((m: any) => m.role === "user").pop()?.content || "";
 
