@@ -196,6 +196,68 @@ export default function Index() {
         </div>
       </section>
 
+      {/* Manifesto Section - Por qué RAGify */}
+      <section className="py-24 md:py-32 border-t border-border">
+        <div className="container mx-auto px-6">
+          <div className="max-w-4xl">
+            <p className="font-mono text-xs tracking-widest text-primary mb-4">MANIFIESTO</p>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 leading-[0.95]">
+              RAGify nació de una frustración real.
+            </h2>
+            <p className="text-lg md:text-xl text-muted-foreground mb-16 max-w-3xl leading-relaxed">
+              Construir IA sobre tus propios datos no debería requerir un equipo de Machine Learning.{' '}
+              <span className="text-foreground font-medium">Cualquiera puede hablar de IA. Pocos la hacen accesible.</span>
+            </p>
+
+            <div className="space-y-0 border-t border-border">
+              {[
+                {
+                  number: '01',
+                  title: 'Obsesión por la simplicidad',
+                  description: 'Cada decisión de producto se filtra por una pregunta: "¿Un founder sin equipo técnico podría hacerlo solo?" Si la respuesta es no, se rediseña.',
+                },
+                {
+                  number: '02',
+                  title: 'Pensamiento API-first',
+                  description: 'RAGify no es un chatbot bonito. Es infraestructura. Un endpoint REST que se integra con cualquier stack, cualquier lenguaje, cualquier herramienta no-code. La visión siempre fue: construye la tubería, no el grifo.',
+                },
+                {
+                  number: '03',
+                  title: 'Seguridad como principio',
+                  description: 'Documentos encriptados AES-256, aislamiento por proyecto, verificación JWT en cada endpoint. No es un checkbox de marketing — es arquitectura.',
+                },
+                {
+                  number: '04',
+                  title: 'Full-stack por convicción',
+                  description: 'Desde el procesamiento de documentos con OCR hasta analíticas en tiempo real, pasando por edge functions y embeddings vectoriales. RAGify es el producto de alguien que entiende cada capa del stack.',
+                },
+                {
+                  number: '05',
+                  title: 'Velocidad como ventaja',
+                  description: 'Setup en 3 minutos. Latencia menor a 100ms. Deploy instantáneo. Porque en el mundo real, la velocidad de iteración gana a la perfección teórica.',
+                },
+              ].map((item) => (
+                <div key={item.number} className="grid grid-cols-12 border-b border-border py-8 group">
+                  <div className="col-span-1">
+                    <span className="font-mono text-xs text-muted-foreground">{item.number}</span>
+                  </div>
+                  <div className="col-span-11 md:col-span-3">
+                    <h3 className="text-lg md:text-xl font-bold group-hover:text-primary transition-colors">{item.title}</h3>
+                  </div>
+                  <div className="col-span-12 md:col-span-8 mt-3 md:mt-0 md:pl-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">{item.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="font-mono text-xs tracking-widest text-muted-foreground mt-12 max-w-2xl leading-loose">
+              RAG EN PRODUCCIÓN, SIN EL EQUIPO DE ML. — TU CONOCIMIENTO. TU API. TU CONTROL.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* How It Works - Timeline style */}
       <section id="how-it-works" className="py-24 md:py-32 border-t border-border">
         <div className="container mx-auto px-6">

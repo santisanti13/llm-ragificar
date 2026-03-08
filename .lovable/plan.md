@@ -1,57 +1,61 @@
 
 
-## Copy para RAGify — Destacando la visión del creador
+# Diagnóstico y Plan de Corrección del RAG
 
-Basado en el análisis de la landing page actual, el producto y sus capacidades, aquí va el copy propuesto. Se puede integrar como una nueva sección "Sobre el producto" en la landing, o usarse como material de marketing independiente.
+## Problemas Encontrados
 
----
+### 1. CRITICO: `document_chunks` está completamente vacía
+Los documentos muestran `status: ready` y `chunk_count: 40`, pero la tabla `document_chunks` tiene **0 registros**. Los chunks se reportan como procesados pero no se persisten. Probable causa: el formato del embedding (JSON.stringify de un array) no es compatible con el tipo `vector(768)` de pgvector, causando que el INSERT falle silenciosamente.
 
-### Headline principal
+### 2. CRITICO: La API de embeddings devuelve error 400
+Los logs muestran repetidamente `Embedding error: 400` en `rag-chat`. El endpoint `https://ai.gateway.lovable.dev/v1/embeddings` con modelo `text-embedding-3-small` no funciona correctamente. Esto rompe toda la búsqueda semántica.
 
-> **RAGify nació de una frustración real: construir IA sobre tus propios datos no debería requerir un equipo de Machine Learning.**
+### 3. PDFs se leen como texto crudo
+`process-document` usa `fileData.text()` sobre archivos PDF, que devuelve basura binaria en lugar de texto legible. Los PDFs requieren un parser dedicado.
 
----
+## Plan de Corrección
 
-### Copy largo (sección "Manifiesto" o "Sobre RAGify")
+### Paso 1: Corregir el procesamiento de PDFs
+- Usar la API de Lovable AI (Gemini) para extraer texto de PDFs enviando el contenido base64 como input multimodal, o implementar un parser PDF en Deno (como `pdf-parse`).
+- Alternativa más robusta: usar Gemini con el PDF en base64 para extraer el texto.
 
-> **Cualquiera puede hablar de IA. Pocos la hacen accesible.**
->
-> RAGify no es otro wrapper de ChatGPT. Es una plataforma de RAG-as-a-Service diseñada desde cero para resolver un problema que su creador vivió en primera persona: el abismo entre tener documentos llenos de conocimiento valioso y poder consultarlos con lenguaje natural a través de una API.
->
-> Construir un sistema RAG en producción normalmente requiere ingenieros de ML, infraestructura de vectores, pipelines de embeddings, orquestación de prompts y semanas de desarrollo. RAGify comprime todo eso en 3 minutos.
->
-> **Lo que hace diferente al creador de RAGify:**
->
-> — **Obsesión por la simplicidad.** Cada decisión de producto se filtra por una pregunta: "¿Un founder sin equipo técnico podría hacerlo solo?" Si la respuesta es no, se rediseña.
->
-> — **Pensamiento API-first.** RAGify no es un chatbot bonito. Es infraestructura. Un endpoint REST que se integra con cualquier stack, cualquier lenguaje, cualquier herramienta no-code. La visión siempre fue: construye la tubería, no el grifo.
->
-> — **Seguridad como principio, no como feature.** Documentos encriptados AES-256, aislamiento por proyecto, verificación JWT en cada endpoint, datos que nunca se comparten ni entrenan modelos de terceros. No es un checkbox de marketing — es arquitectura.
->
-> — **Full-stack por convicción.** Desde el procesamiento de documentos con OCR hasta el frontend con analíticas en tiempo real, pasando por edge functions, embeddings vectoriales y RLS a nivel de base de datos. RAGify es el producto de alguien que entiende cada capa del stack y no delega la calidad.
->
-> — **Velocidad como ventaja competitiva.** Setup en 3 minutos. Latencia menor a 100ms. Deploy instantáneo. Porque el creador sabe que en el mundo real, la velocidad de iteración gana a la perfección teórica.
+### Paso 2: Corregir la generación de embeddings
+- Reemplazar el endpoint `/v1/embeddings` por una estrategia alternativa:
+  - **Opción A**: Usar Gemini para generar embeddings a través del gateway si soporta el modelo `text-embedding-004`.
+  - **Opción B**: Generar embeddings usando una llamada al modelo de chat con tool calling para obtener una representación del texto, y usar búsqueda por keywords como respaldo principal.
+  - **Opción C (recomendada)**: Mejorar la búsqueda de texto con un enfoque híbrido: búsqueda por keywords (full-text search con `tsvector` en PostgreSQL) como método principal, eliminando la dependencia de embeddings que no funcionan.
 
----
+### Paso 3: Corregir la persistencia de chunks
+- Agregar logging detallado del error de INSERT en `process-document`.
+- Si se mantienen embeddings, asegurar que el formato sea compatible con pgvector (pasar como string `[0.1,0.2,...]`).
+- Si se usa full-text search, agregar columna `tsv tsvector` a `document_chunks` con trigger de actualización.
 
-### Copy corto (para redes sociales, pitch decks, bios)
+### Paso 4: Crear mecanismo de re-procesamiento
+- Añadir un botón "Re-procesar" en la UI del proyecto para re-generar chunks de documentos existentes.
+- Limpiar chunks antiguos antes de re-insertar.
 
-> **RAGify: de documentos a API inteligente en 3 minutos.**
-> Creado por un desarrollador full-stack que se cansó de que construir RAG requiriera un equipo de ML. Procesamiento automático de documentos, embeddings vectoriales, entrenamiento sin código y un endpoint REST listo para producción. Seguridad empresarial incluida. Sin DevOps. Sin excusas.
+### Paso 5: Sincronizar `api-query` con los mismos parámetros
+- La edge function `api-query` no usa los parámetros configurables (temperatura, modelo, threshold) del `project_training`. Alinearla con `rag-chat`.
 
----
+## Detalle Técnico
 
-### Taglines alternativos
+### Migración SQL (full-text search)
+```sql
+ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS fts tsvector 
+  GENERATED ALWAYS AS (to_tsvector('spanish', content)) STORED;
+CREATE INDEX IF NOT EXISTS idx_chunks_fts ON document_chunks USING gin(fts);
+```
 
-1. "Tu conocimiento. Tu API. Tu control."
-2. "RAG en producción, sin el equipo de ML."
-3. "Donde tus documentos se convierten en inteligencia."
-4. "La infraestructura de IA que deberías haber tenido hace un año."
-5. "Sube. Entrena. Despliega. Así de simple."
+### Búsqueda híbrida en `rag-chat`
+Reemplazar la búsqueda semántica fallida por full-text search de PostgreSQL como método principal, manteniendo la semántica como opcional si los embeddings existen.
 
----
+### Procesamiento de PDFs
+Convertir el PDF a base64 y enviarlo a Gemini Flash para extracción de texto, ya que es multimodal y puede leer PDFs nativamente.
 
-### Plan de implementación
-
-Se puede añadir una nueva sección **"Por qué RAGify"** en `src/pages/Index.tsx` entre la sección de beneficios y "Cómo funciona", con el copy del manifiesto estilizado en el mismo diseño TinyFish de la landing actual (tipografía grande, monospace para etiquetas, layout limpio).
+## Archivos a Modificar
+- `supabase/functions/process-document/index.ts` — Parser PDF + fix chunks insert
+- `supabase/functions/rag-chat/index.ts` — Búsqueda híbrida (FTS + semántica)
+- `supabase/functions/api-query/index.ts` — Usar parámetros configurables
+- `src/components/TrainingConfig.tsx` o `src/pages/Project.tsx` — Botón re-procesar
+- Nueva migración SQL — Columna FTS + índice GIN
 
