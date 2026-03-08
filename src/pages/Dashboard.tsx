@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import logo from '@/assets/logo.png';
+import logoWhite from '@/assets/logo-white.png';
 
 interface Project {
   id: string;
@@ -222,7 +223,11 @@ export default function Dashboard() {
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex-1" />
           <div className="absolute left-1/2 -translate-x-1/2">
-            <img src={logo} alt="RAGify" className="h-24 w-auto -my-6" />
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full blur-2xl opacity-60 bg-neon-green/40 scale-125" />
+              <img src={logo} alt="RAGify" className="relative h-24 w-auto -my-6 dark:hidden" />
+              <img src={logoWhite} alt="RAGify" className="relative h-24 w-auto -my-6 hidden dark:block" />
+            </div>
           </div>
           <div className="flex items-center gap-4 flex-1 justify-end">
             <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
