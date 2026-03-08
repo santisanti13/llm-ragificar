@@ -76,7 +76,8 @@ export function ApiKeysManager({ projectId }: ApiKeysManagerProps) {
         
       if (!logsError && logsData) {
         const counts: Record<string, number> = {};
-        logsData.forEach(log => {
+        // Use any here to avoid TS errors before types are regenerated
+        logsData.forEach((log: any) => {
           if (log.api_key_id) {
             counts[log.api_key_id] = (counts[log.api_key_id] || 0) + 1;
           }
