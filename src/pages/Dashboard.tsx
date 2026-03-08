@@ -231,7 +231,15 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-4 flex-1 justify-end">
             <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={async () => {
+                await signOut();
+                navigate('/');
+              }} 
+              className="border-destructive/30 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+            >
               <LogOut className="h-4 w-4 mr-2" />
               Salir
             </Button>
