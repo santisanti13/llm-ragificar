@@ -288,6 +288,13 @@ export function ApiKeysManager({ projectId }: ApiKeysManagerProps) {
                     <span className="font-mono">rag_...{key.key_prefix}</span>
                     <span>Último uso: {formatDate(key.last_used_at)}</span>
                   </div>
+                  <div className="flex items-center gap-2 pt-1 text-xs">
+                    <span className="flex items-center gap-1 font-medium text-primary">
+                      <span className="inline-block w-2 h-2 rounded-full bg-primary/70"></span>
+                      {keyStats[key.id] || 0} llamadas esta semana
+                    </span>
+                    <span className="text-muted-foreground opacity-70">(límite 100/min)</span>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

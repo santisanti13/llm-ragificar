@@ -240,6 +240,7 @@ serve(async (req) => {
     await supabaseClient.from("api_query_logs").insert({
       project_id,
       user_id: project.user_id,
+      api_key_id: apiKeyRecord.id,
       query: queryText.substring(0, 1000),
       response_preview: assistantMessage.substring(0, 200),
       tokens_used: totalTokens,
