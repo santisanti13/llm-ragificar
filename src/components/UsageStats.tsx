@@ -177,7 +177,7 @@ export function UsageStats() {
                 className="h-2"
               />
               {queriesPercentage >= 90 && (
-                <p className="text-xs text-red-600">
+                <p className="text-xs text-destructive">
                   ⚠️ Te estás acercando al límite mensual de queries
                 </p>
               )}
