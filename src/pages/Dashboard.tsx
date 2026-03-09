@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import logo from '@/assets/logo.png';
 import logoWhite from '@/assets/logo-white.png';
+import { UsageStats } from '@/components/UsageStats';
 
 interface Project {
   id: string;
@@ -133,6 +134,25 @@ export default function Dashboard() {
 
     setIsSubmitting(true);
     try {
+      // Check if user can create a new project
+      const { data: canCreate, error: limitError } = await supabase.rpc('can_user_create_project', {
+        user_uuid: user?.id
+      });
+
+      if (limitError) throw limitError;
+      
+      if (!canCreate) {
+        const { data: userStats } = await supabase.rpc('get_user_usage_stats', {
+          user_uuid: user?.id
+        });
+        
+        const limits = (userStats as any)?.limits || { projects: 1 };
+        const tier = (userStats as any)?.tier || 'free';
+        toast.error(`Has alcanzado tu límite de ${limits.projects} proyecto${limits.projects > 1 ? 's' : ''} en el plan ${tier}. Mejora tu plan para crear más proyectos.`);
+        setIsSubmitting(false);
+        return;
+      }
+
       const { error } = await supabase.from('projects').insert({
         name: newProject.name.trim(),
         description: newProject.description.trim() || null,
@@ -264,6 +284,9 @@ export default function Dashboard() {
             <StatCard icon={MessageSquare} label="Consultas API" value={totalApiQueries} trend={avgLatency > 0 ? `~${avgLatency}ms` : undefined} />
           </div>
         </div>
+
+        {/* Usage Stats */}
+        <UsageStats />
 
         {/* Activity feed + Quick actions */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
