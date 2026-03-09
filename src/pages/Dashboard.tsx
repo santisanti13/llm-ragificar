@@ -134,6 +134,25 @@ export default function Dashboard() {
 
     setIsSubmitting(true);
     try {
+      // Check if user can create a new project
+      const { data: canCreate, error: limitError } = await supabase.rpc('can_user_create_project', {
+        user_uuid: user?.id
+      });
+
+      if (limitError) throw limitError;
+      
+      if (!canCreate) {
+        const { data: userStats } = await supabase.rpc('get_user_usage_stats', {
+          user_uuid: user?.id
+        });
+        
+        const limits = (userStats as any)?.limits || { projects: 1 };
+        const tier = (userStats as any)?.tier || 'free';
+        toast.error(`Has alcanzado tu límite de ${limits.projects} proyecto${limits.projects > 1 ? 's' : ''} en el plan ${tier}. Mejora tu plan para crear más proyectos.`);
+        setIsSubmitting(false);
+        return;
+      }
+
       const { error } = await supabase.from('projects').insert({
         name: newProject.name.trim(),
         description: newProject.description.trim() || null,
