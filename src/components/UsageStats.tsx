@@ -55,11 +55,11 @@ export function UsageStats() {
 
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case 'free': return 'bg-gray-100 text-gray-800 border-gray-300';
-      case 'starter': return 'bg-blue-100 text-blue-800 border-blue-300';
-      case 'pro': return 'bg-purple-100 text-purple-800 border-purple-300';
-      case 'enterprise': return 'bg-amber-100 text-amber-800 border-amber-300';
-      default: return 'bg-gray-100 text-gray-800 border-gray-300';
+      case 'free': return 'bg-muted text-muted-foreground border-border';
+      case 'starter': return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800';
+      case 'pro': return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800';
+      case 'enterprise': return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
