@@ -266,6 +266,9 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Usage Stats */}
+        <UsageStats />
+
         {/* Activity feed + Quick actions */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent API activity */}
