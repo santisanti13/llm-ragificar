@@ -131,6 +131,30 @@ serve(async (req) => {
       });
     }
 
+    // Check subscription limits
+    const { data: canQuery } = await supabaseClient.rpc("can_user_make_query", {
+      user_uuid: project.user_id
+    });
+
+    if (!canQuery) {
+      const { data: userStats } = await supabaseClient.rpc("get_user_usage_stats", {
+        user_uuid: project.user_id
+      });
+      
+      const limits = userStats?.limits || { queries_per_month: 100 };
+      const usage = userStats?.usage || { queries_this_month: 0 };
+      
+      return new Response(JSON.stringify({ 
+        error: "Monthly query limit exceeded",
+        message: `Has alcanzado tu límite de ${limits.queries_per_month} queries mensuales (usadas: ${usage.queries_this_month}). Mejora tu plan para continuar.`,
+        upgrade_required: true,
+        limits,
+        usage
+      }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
