@@ -45,7 +45,7 @@ export function UsageStats() {
       });
 
       if (error) throw error;
-      setUsageData(data as UsageData);
+      setUsageData(data as unknown as UsageData);
     } catch (error) {
       console.error('Error fetching usage stats:', error);
     } finally {
