@@ -363,11 +363,54 @@ export type Database = {
           },
         ]
       }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      can_user_create_project: { Args: { user_uuid: string }; Returns: boolean }
+      can_user_make_query: { Args: { user_uuid: string }; Returns: boolean }
+      get_tier_limits: {
+        Args: { tier_name: Database["public"]["Enums"]["subscription_tier"] }
+        Returns: Json
+      }
+      get_user_usage_stats: { Args: { user_uuid: string }; Returns: Json }
       match_document_chunks: {
         Args: {
           match_count?: number
@@ -400,6 +443,7 @@ export type Database = {
     }
     Enums: {
       document_status: "pending" | "processing" | "ready" | "error"
+      subscription_tier: "free" | "starter" | "pro" | "enterprise"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -528,6 +572,7 @@ export const Constants = {
   public: {
     Enums: {
       document_status: ["pending", "processing", "ready", "error"],
+      subscription_tier: ["free", "starter", "pro", "enterprise"],
     },
   },
 } as const
