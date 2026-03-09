@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import logo from '@/assets/logo.png';
 import logoWhite from '@/assets/logo-white.png';
+import { UsageStats } from '@/components/UsageStats';
 
 interface Project {
   id: string;
