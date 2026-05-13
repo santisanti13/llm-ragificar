@@ -140,6 +140,24 @@ export default function Auth() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error('No se pudo iniciar sesión con Google.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (result.redirected) return;
+    } catch {
+      toast.error('No se pudo iniciar sesión con Google.');
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
