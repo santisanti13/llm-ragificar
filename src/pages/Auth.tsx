@@ -11,6 +11,7 @@ import type { ElementType } from 'react';
 import { Loader2, Sparkles, FileText, MessageSquare, ArrowLeft, CheckCircle } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import logo from '@/assets/logo.png';
 import logoWhite from '@/assets/logo-white.png';
 
@@ -135,6 +136,24 @@ export default function Auth() {
         }, 2000);
       }
     } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setIsSubmitting(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error('No se pudo iniciar sesión con Google.');
+        setIsSubmitting(false);
+        return;
+      }
+      if (result.redirected) return;
+    } catch {
+      toast.error('No se pudo iniciar sesión con Google.');
       setIsSubmitting(false);
     }
   };
@@ -304,6 +323,26 @@ export default function Auth() {
               </div>
             ) : (
               <Tabs defaultValue="signin" className="w-full">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full mb-4 bg-background/50 border-border/50 hover:bg-background"
+                  onClick={handleGoogleSignIn}
+                  disabled={isSubmitting}
+                >
+                  <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.4-1.7 4.1-5.5 4.1-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.4 14.6 2.4 12 2.4 6.7 2.4 2.4 6.7 2.4 12s4.3 9.6 9.6 9.6c5.5 0 9.2-3.9 9.2-9.4 0-.6-.1-1.1-.2-1.6H12z"/>
+                  </svg>
+                  Continuar con Google
+                </Button>
+                <div className="relative mb-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-border/50" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">O continúa con</span>
+                  </div>
+                </div>
                 <TabsList className="grid w-full grid-cols-2 mb-6 bg-muted/50">
                   <TabsTrigger value="signin" className="data-[state=active]:bg-background">Iniciar sesión</TabsTrigger>
                   <TabsTrigger value="signup" className="data-[state=active]:bg-background">Registrarse</TabsTrigger>
