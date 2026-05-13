@@ -1,61 +1,64 @@
+## Plan: Fix completo del pipeline RAG
 
+### Diagnóstico real (verificado en BD)
 
-# Diagnóstico y Plan de Corrección del RAG
+Bueno, antes de planear lo que ya funciona: he comprobado el estado real y **el plan antiguo en `.lovable/plan.md` está desactualizado**.
 
-## Problemas Encontrados
+Lo que **SÍ funciona** ya:
+- ✅ Extracción de PDFs con Gemini multimodal (los chunks tienen texto limpio).
+- ✅ Inserción en `document_chunks` (112 chunks en BD).
+- ✅ Columna `fts` poblada por trigger.
 
-### 1. CRITICO: `document_chunks` está completamente vacía
-Los documentos muestran `status: ready` y `chunk_count: 40`, pero la tabla `document_chunks` tiene **0 registros**. Los chunks se reportan como procesados pero no se persisten. Probable causa: el formato del embedding (JSON.stringify de un array) no es compatible con el tipo `vector(768)` de pgvector, causando que el INSERT falle silenciosamente.
+Lo que **NO funciona** (verificado):
+1. **FTS hardcodeado a `'spanish'`** → si el documento está en inglés (caso real: "10 QUESTIONS, 20 MINUTES…") o si la pregunta es en otro idioma que el documento, el `plainto_tsquery('spanish', …)` no matchea nada. La función `search_document_chunks_fts` devuelve 0 filas en muchos casos.
+2. **`embedding IS NULL` en el 100% de los chunks** → la búsqueda semántica está muerta. El fallback actual ("traer 10 chunks aleatorios") mete ruido en el prompt y el chat responde mal.
+3. **`similarity_threshold` de la config no se usa** (memoria ya lo refleja).
 
-### 2. CRITICO: La API de embeddings devuelve error 400
-Los logs muestran repetidamente `Embedding error: 400` en `rag-chat`. El endpoint `https://ai.gateway.lovable.dev/v1/embeddings` con modelo `text-embedding-3-small` no funciona correctamente. Esto rompe toda la búsqueda semántica.
+### Cambios
 
-### 3. PDFs se leen como texto crudo
-`process-document` usa `fileData.text()` sobre archivos PDF, que devuelve basura binaria en lugar de texto legible. Los PDFs requieren un parser dedicado.
+#### 1. Migración SQL — FTS multilenguaje + función híbrida
 
-## Plan de Corrección
+- Recrear columna `fts` como `to_tsvector('simple', content)` (sin stopwords, language-agnostic) **+** mantener variante en español como columna adicional `fts_es` para queries en castellano. Búsqueda usa `OR` sobre ambas.
+- Recrear `search_document_chunks_fts` para hacer match en `fts || fts_es` con `plainto_tsquery('simple', q) || plainto_tsquery('spanish', q)`.
+- Backfill automático de las columnas para los 112 chunks existentes.
 
-### Paso 1: Corregir el procesamiento de PDFs
-- Usar la API de Lovable AI (Gemini) para extraer texto de PDFs enviando el contenido base64 como input multimodal, o implementar un parser PDF en Deno (como `pdf-parse`).
-- Alternativa más robusta: usar Gemini con el PDF en base64 para extraer el texto.
+#### 2. Generación de embeddings reales
 
-### Paso 2: Corregir la generación de embeddings
-- Reemplazar el endpoint `/v1/embeddings` por una estrategia alternativa:
-  - **Opción A**: Usar Gemini para generar embeddings a través del gateway si soporta el modelo `text-embedding-004`.
-  - **Opción B**: Generar embeddings usando una llamada al modelo de chat con tool calling para obtener una representación del texto, y usar búsqueda por keywords como respaldo principal.
-  - **Opción C (recomendada)**: Mejorar la búsqueda de texto con un enfoque híbrido: búsqueda por keywords (full-text search con `tsvector` en PostgreSQL) como método principal, eliminando la dependencia de embeddings que no funcionan.
+- Usar **`google/gemini-embedding-001`** vía Lovable AI Gateway (`/v1/embeddings`, dim 768, ya compatible con la columna `vector(768)`).
+- En `process-document/index.ts`: tras chunkear, hacer batch de embeddings (en lotes de 20), e insertar en el mismo `INSERT` con formato pgvector correcto: `[0.1,0.2,…]` como **string**, no array JS.
+- Si el endpoint de embeddings falla, loguear pero no romper el processing — los chunks se guardan igual y el FTS sigue funcionando.
 
-### Paso 3: Corregir la persistencia de chunks
-- Agregar logging detallado del error de INSERT en `process-document`.
-- Si se mantienen embeddings, asegurar que el formato sea compatible con pgvector (pasar como string `[0.1,0.2,...]`).
-- Si se usa full-text search, agregar columna `tsv tsvector` a `document_chunks` con trigger de actualización.
+#### 3. Búsqueda híbrida en `rag-chat` y `api-query`
 
-### Paso 4: Crear mecanismo de re-procesamiento
-- Añadir un botón "Re-procesar" en la UI del proyecto para re-generar chunks de documentos existentes.
-- Limpiar chunks antiguos antes de re-insertar.
+Reemplazar el fallback ciego ("primeros 10 chunks") por:
+1. Generar embedding de la query.
+2. Llamar a `match_document_chunks` (semántica) con `similarity_threshold` configurable.
+3. Llamar a `search_document_chunks_fts` (keyword).
+4. Fusionar resultados deduplicando por `id`, priorizando los que aparecen en ambos (RRF simple).
+5. Solo si **ambos** devuelven 0, mostrar un mensaje claro al modelo: "No hay contexto relevante" (en lugar de inventar con chunks aleatorios).
 
-### Paso 5: Sincronizar `api-query` con los mismos parámetros
-- La edge function `api-query` no usa los parámetros configurables (temperatura, modelo, threshold) del `project_training`. Alinearla con `rag-chat`.
+#### 4. Re-procesar documentos existentes
 
-## Detalle Técnico
+- Añadir botón "Re-procesar todos" en `Project.tsx` que itere sobre los documentos del proyecto e invoque `process-document` con `force=true` (ya borra chunks viejos y los regenera con embeddings).
+- También ejecutar un job server-side al desplegar la migración para repoblar `fts`/`fts_es` de los 112 chunks ya existentes (sin embeddings; los users tendrán que re-procesar para obtener embeddings).
 
-### Migración SQL (full-text search)
-```sql
-ALTER TABLE document_chunks ADD COLUMN IF NOT EXISTS fts tsvector 
-  GENERATED ALWAYS AS (to_tsvector('spanish', content)) STORED;
-CREATE INDEX IF NOT EXISTS idx_chunks_fts ON document_chunks USING gin(fts);
-```
+### Archivos a modificar
 
-### Búsqueda híbrida en `rag-chat`
-Reemplazar la búsqueda semántica fallida por full-text search de PostgreSQL como método principal, manteniendo la semántica como opcional si los embeddings existen.
+| Archivo | Cambio |
+|---|---|
+| nueva migración SQL | columna `fts_es`, recreación `search_document_chunks_fts` híbrida |
+| `supabase/functions/process-document/index.ts` | generar embeddings + insertarlos correctamente |
+| `supabase/functions/rag-chat/index.ts` | búsqueda híbrida (semántica + FTS) + threshold configurable |
+| `supabase/functions/api-query/index.ts` | mismo cambio (paridad con rag-chat) |
+| `src/pages/Project.tsx` o `TrainingConfig.tsx` | botón "Re-procesar documentos" |
 
-### Procesamiento de PDFs
-Convertir el PDF a base64 y enviarlo a Gemini Flash para extracción de texto, ya que es multimodal y puede leer PDFs nativamente.
+### Validación post-implementación
 
-## Archivos a Modificar
-- `supabase/functions/process-document/index.ts` — Parser PDF + fix chunks insert
-- `supabase/functions/rag-chat/index.ts` — Búsqueda híbrida (FTS + semántica)
-- `supabase/functions/api-query/index.ts` — Usar parámetros configurables
-- `src/components/TrainingConfig.tsx` o `src/pages/Project.tsx` — Botón re-procesar
-- Nueva migración SQL — Columna FTS + índice GIN
+1. Subir un PDF de prueba → confirmar que `embedding IS NOT NULL` en los nuevos chunks.
+2. Hacer pregunta cuya respuesta esté en el doc → verificar en logs que `chunks_used > 0` y que vienen del FTS o de la semántica (no del fallback).
+3. Hacer pregunta totalmente fuera del doc → verificar que el modelo dice "no tengo esa información" en vez de alucinar.
 
+### Notas
+
+- El modelo `google/gemini-embedding-001` está dentro del free tier de Lovable AI durante el período promocional.
+- No se toca el sistema de tiers/límites ni la UI de pagos en este plan.
