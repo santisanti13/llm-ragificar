@@ -153,8 +153,8 @@ No incluyas texto fuera del JSON.`,
     });
   } catch (e) {
     const error = e as Error;
-    console.error("Generate questions error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[INTERNAL ERROR] generate-questions:", error.message, error.stack);
+    return new Response(JSON.stringify({ error: "Ocurrió un error interno. Inténtalo de nuevo." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

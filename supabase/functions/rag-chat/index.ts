@@ -213,8 +213,8 @@ serve(async (req) => {
     });
   } catch (e) {
     const error = e as Error;
-    console.error("RAG chat error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[INTERNAL ERROR] RAG chat:", error.message, error.stack);
+    return new Response(JSON.stringify({ error: "Ocurrió un error interno. Inténtalo de nuevo." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

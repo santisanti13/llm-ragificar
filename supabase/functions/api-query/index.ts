@@ -320,8 +320,8 @@ serve(async (req) => {
     );
   } catch (e) {
     const error = e as Error;
-    console.error("API query error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("[INTERNAL ERROR] API query:", error.message, error.stack);
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
