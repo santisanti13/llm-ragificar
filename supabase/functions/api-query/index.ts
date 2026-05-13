@@ -171,37 +171,65 @@ serve(async (req) => {
     const examples = examplesRes.data || [];
     const temperature = training?.temperature ?? 0.7;
     const matchCount = training?.match_count ?? 8;
+    const similarityThreshold = training?.similarity_threshold ?? 0.3;
     const model = training?.model || "google/gemini-2.5-flash";
 
-    // Full-text search
+    // Hybrid search: semantic + FTS
     const searchText = query || messages[messages.length - 1]?.content || "";
     let context = "";
     let chunksUsed = 0;
 
     if (searchText) {
+      const merged = new Map<string, { content: string; score: number }>();
+
       try {
-        const { data: ftsChunks, error: ftsError } = await supabaseClient.rpc("search_document_chunks_fts", {
+        const embRes = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "google/gemini-embedding-001", input: [searchText] }),
+        });
+        if (embRes.ok) {
+          const embJson = await embRes.json();
+          const queryEmbedding = embJson.data?.[0]?.embedding;
+          if (queryEmbedding) {
+            const { data: semChunks } = await supabaseClient.rpc("match_document_chunks", {
+              query_embedding: `[${queryEmbedding.join(",")}]`,
+              match_project_id: project_id,
+              match_threshold: similarityThreshold,
+              match_count: matchCount,
+            });
+            if (semChunks) {
+              for (const c of semChunks) {
+                merged.set(c.id, { content: c.content, score: 1.0 + (c.similarity ?? 0) });
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Semantic search failed:", e);
+      }
+
+      try {
+        const { data: ftsChunks } = await supabaseClient.rpc("search_document_chunks_fts", {
           search_query: searchText,
           search_project_id: project_id,
           max_results: matchCount,
         });
-
-        if (!ftsError && ftsChunks && ftsChunks.length > 0) {
-          context = ftsChunks.map((c: any) => c.content).join("\n\n");
-          chunksUsed = ftsChunks.length;
+        if (ftsChunks) {
+          for (const c of ftsChunks) {
+            const existing = merged.get(c.id);
+            if (existing) existing.score += 0.5 + (c.rank ?? 0);
+            else merged.set(c.id, { content: c.content, score: 0.5 + (c.rank ?? 0) });
+          }
         }
       } catch (e) {
         console.error("FTS search failed:", e);
       }
-    }
 
-    // Fallback
-    if (!context) {
-      const { data: fallbackChunks } = await supabaseClient
-        .from("document_chunks").select("content").eq("project_id", project_id).limit(10);
-      if (fallbackChunks && fallbackChunks.length > 0) {
-        context = fallbackChunks.map((c: any) => c.content).join("\n\n");
-        chunksUsed = fallbackChunks.length;
+      if (merged.size > 0) {
+        const sorted = [...merged.values()].sort((a, b) => b.score - a.score).slice(0, matchCount);
+        context = sorted.map((c) => c.content).join("\n\n");
+        chunksUsed = sorted.length;
       }
     }
 

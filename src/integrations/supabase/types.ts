@@ -108,6 +108,7 @@ export type Database = {
           document_id: string
           embedding: string | null
           fts: unknown
+          fts_es: unknown
           id: string
           metadata: Json | null
           project_id: string
@@ -119,6 +120,7 @@ export type Database = {
           document_id: string
           embedding?: string | null
           fts?: unknown
+          fts_es?: unknown
           id?: string
           metadata?: Json | null
           project_id: string
@@ -130,6 +132,7 @@ export type Database = {
           document_id?: string
           embedding?: string | null
           fts?: unknown
+          fts_es?: unknown
           id?: string
           metadata?: Json | null
           project_id?: string

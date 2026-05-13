@@ -48,6 +48,34 @@ async function extractTextFromPdf(pdfBase64: string, apiKey: string): Promise<st
   return data.choices?.[0]?.message?.content || "";
 }
 
+// Generate embeddings via Lovable AI Gateway (Gemini embedding-001, 768 dims)
+async function generateEmbeddings(texts: string[], apiKey: string): Promise<(number[] | null)[]> {
+  const results: (number[] | null)[] = [];
+  const batchSize = 20;
+  for (let i = 0; i < texts.length; i += batchSize) {
+    const batch = texts.slice(i, i + batchSize);
+    try {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: "google/gemini-embedding-001", input: batch }),
+      });
+      if (!res.ok) {
+        console.error("Embedding batch failed:", res.status, await res.text());
+        for (let j = 0; j < batch.length; j++) results.push(null);
+        continue;
+      }
+      const data = await res.json();
+      const embs = (data.data || []).map((d: any) => d.embedding as number[]);
+      for (let j = 0; j < batch.length; j++) results.push(embs[j] ?? null);
+    } catch (e) {
+      console.error("Embedding error:", e);
+      for (let j = 0; j < batch.length; j++) results.push(null);
+    }
+  }
+  return results;
+}
+
 function chunkText(text: string, chunkSize: number, chunkOverlap: number): string[] {
   const paragraphs = text.split(/\n\n+/);
   const chunks: string[] = [];
@@ -206,11 +234,18 @@ serve(async (req) => {
     await supabaseAdmin.from("document_chunks").delete().eq("document_id", documentId);
 
     if (validChunks.length > 0) {
+      console.log(`Generating embeddings for ${validChunks.length} chunks...`);
+      const embeddings = await generateEmbeddings(validChunks, LOVABLE_API_KEY);
+      const successCount = embeddings.filter((e) => e !== null).length;
+      console.log(`Got ${successCount}/${validChunks.length} embeddings`);
+
       const chunkRecords = validChunks.map((content, index) => ({
         document_id: documentId,
         project_id: doc.project_id,
         content,
         chunk_index: index,
+        // pgvector accepts a string like "[0.1,0.2,...]"
+        embedding: embeddings[index] ? `[${embeddings[index]!.join(",")}]` : null,
       }));
 
       const { error: insertError } = await supabaseAdmin.from("document_chunks").insert(chunkRecords);
