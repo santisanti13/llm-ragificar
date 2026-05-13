@@ -269,11 +269,11 @@ serve(async (req) => {
     });
   } catch (e) {
     const error = e as Error;
-    console.error("Processing error:", error);
+    console.error("[INTERNAL ERROR] process-document:", error.message, error.stack);
     if (documentId) {
-      await supabaseAdmin.from("documents").update({ status: "error", error_message: error.message }).eq("id", documentId);
+      await supabaseAdmin.from("documents").update({ status: "error", error_message: "Processing failed" }).eq("id", documentId);
     }
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred while processing the document." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
