@@ -11,6 +11,7 @@ import type { ElementType } from 'react';
 import { Loader2, Sparkles, FileText, MessageSquare, ArrowLeft, CheckCircle } from 'lucide-react';
 import { z } from 'zod';
 import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import logo from '@/assets/logo.png';
 import logoWhite from '@/assets/logo-white.png';
 
