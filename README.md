@@ -1,73 +1,110 @@
-# Welcome to your Lovable project
+# RAGify — Tu API inteligente de documentos
 
-## Project info
+> RAG-as-a-Service para todos. Sube tus documentos, obtén una API privada y segura que puedes conectar a cualquier herramienta.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Live:** [llm-ragificar.lovable.app](https://llm-ragificar.lovable.app)
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## Context
 
-**Use Lovable**
+RAGify was built before "RAG" became a standard term in product conversations.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+The idea was simple: most organizations sit on enormous amounts of knowledge locked inside PDFs, docs, wikis, and emails — and have no way to make that knowledge accessible to an AI. Fine-tuning is expensive and requires ML expertise. RAGify was an attempt to democratize that: upload your documents, get an API back, connect it to whatever you're building.
 
-Changes made via Lovable will be committed automatically to this repo.
+Today, companies like Cohere, Pinecone, and LlamaIndex sell this at enterprise scale. At the time RAGify was built, doing it from scratch as a solo builder — with a working product, a brand, and a live URL — was the point.
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## What it does
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+RAGify turns your documents into a private, queryable API:
 
-Follow these steps:
+1. **Upload documents** — PDFs, text files, web content
+2. **RAGify indexes them** — chunks, embeds, stores in a vector database
+3. **Query in natural language** — RAGify retrieves the most relevant context and generates a grounded answer
+4. **Expose as API** — connect the knowledge base to any tool, chatbot, or workflow
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```
+Documents → Chunking → Embedding → Vector DB
+                                        │
+User query → Embedding → Similarity search → Context retrieval
+                                                      │
+                                              LLM + Context → Answer
 ```
 
-**Edit a file directly in GitHub**
+---
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Architecture
 
-**Use GitHub Codespaces**
+```
+User uploads document
+        │
+        ▼
+   RAGify ingestion pipeline
+   ├── Text extraction
+   ├── Chunking (fixed-size + overlap)
+   ├── Embedding (vector representation)
+   └── Storage (vector database)
+        │
+        ▼
+   Query interface
+   ├── Query embedding
+   ├── Similarity search (top-k chunks)
+   ├── Context assembly
+   └── LLM generation (grounded answer)
+        │
+        ▼
+   API response → your app / chatbot / tool
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+---
 
-## What technologies are used for this project?
+## Tech stack
 
-This project is built with:
+| Layer | Technology |
+|---|---|
+| Frontend | React + TypeScript + Lovable |
+| UI | shadcn/ui + Tailwind CSS |
+| Backend | Supabase (PostgreSQL + Edge Functions) |
+| Deployment | Lovable |
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+---
 
-## How can I deploy this project?
+## Why it matters (then and now)
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+When RAGify was built, the dominant approach to "make an AI know your stuff" was fine-tuning — expensive, slow, and requiring ML expertise most teams don't have. RAG offered a better tradeoff: no training, no GPU, just retrieval + generation.
 
-## Can I connect a custom domain to my Lovable project?
+The insight was product, not research: **most people don't need a smarter model, they need their model to know their data.** RAGify was a product bet on that insight.
 
-Yes, you can!
+The market validated it. Every major AI platform now offers some form of RAG or "knowledge base" feature. RAGify was an early, solo, no-code implementation of the same pattern.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## Limitations (honest assessment)
+
+RAGify was built fast, with Lovable, as a proof of concept. What it lacks:
+
+- Production-grade chunking strategies (semantic chunking, hierarchical indexing)
+- Hybrid search (dense + sparse retrieval / BM25)
+- Reranking
+- Evaluation pipeline (how do you know your RAG is good?)
+- Multi-tenancy at scale
+
+These are the problems the current generation of RAG tooling (LlamaIndex, Langchain, Cohere Embed) has spent years solving. RAGify was never meant to compete with them — it was meant to prove the concept and ship something real.
+
+---
+
+## What's next (if continued)
+
+- [ ] Replace naive chunking with semantic chunking
+- [ ] Add hybrid search (BM25 + vector)
+- [ ] Evaluation layer (faithfulness, relevance scoring)
+- [ ] MCP server wrapper — expose any RAGify knowledge base as an MCP tool for Claude
+
+---
+
+## Author
+
+Built by **Santi** — SaaS builder, EdTech & GovTech.
+[santiagojimenezvalero.com](https://www.santiagojimenezvalero.com) · [LinkedIn](https://www.linkedin.com/in/santijiménezvalero)
