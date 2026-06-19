@@ -48,7 +48,9 @@ async function extractTextFromPdf(pdfBase64: string, apiKey: string): Promise<st
   return data.choices?.[0]?.message?.content || "";
 }
 
-// Generate embeddings via Lovable AI Gateway (Gemini embedding-001, 768 dims)
+// Generate embeddings via Lovable AI Gateway.
+// IMPORTANT: document_chunks.embedding column is vector(768). Gemini supports
+// Matryoshka truncation via `dimensions` to match the column size.
 async function generateEmbeddings(texts: string[], apiKey: string): Promise<(number[] | null)[]> {
   const results: (number[] | null)[] = [];
   const batchSize = 20;
@@ -58,10 +60,15 @@ async function generateEmbeddings(texts: string[], apiKey: string): Promise<(num
       const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "google/gemini-embedding-001", input: batch }),
+        body: JSON.stringify({
+          model: "google/gemini-embedding-001",
+          input: batch,
+          dimensions: 768,
+        }),
       });
       if (!res.ok) {
-        console.error("Embedding batch failed:", res.status, await res.text());
+        const errText = await res.text();
+        console.error(`Embedding batch starting at ${i} failed: ${res.status} ${errText}`);
         for (let j = 0; j < batch.length; j++) results.push(null);
         continue;
       }
