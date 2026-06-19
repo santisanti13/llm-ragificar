@@ -96,71 +96,46 @@ serve(async (req) => {
     );
   }
 
-  const results: Array<{
-    id: string;
-    name: string;
-    ok: boolean;
-    chunks?: number;
-    embeddings?: number;
-    error?: string;
-  }> = [];
+  const docList = docs ?? [];
 
-  // Sequential to avoid hammering AI gateway / rate limits
-  for (const doc of docs ?? []) {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/process-document`, {
-        method: "POST",
-        headers: {
-          Authorization: authHeader,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ documentId: doc.id }),
-      });
-      const text = await res.text();
-      let parsed: any = {};
+  // Fire-and-forget: do the heavy work in background, respond immediately.
+  // Progress is observable via documents.status + document_chunks table.
+  const work = async () => {
+    for (const doc of docList) {
       try {
-        parsed = JSON.parse(text);
-      } catch {
-        parsed = { raw: text };
-      }
-      if (res.ok && parsed.success) {
-        results.push({
-          id: doc.id,
-          name: doc.name,
-          ok: true,
-          chunks: parsed.chunks,
-          embeddings: parsed.embeddings,
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/process-document`, {
+          method: "POST",
+          headers: {
+            Authorization: authHeader,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ documentId: doc.id }),
         });
-      } else {
-        results.push({
-          id: doc.id,
-          name: doc.name,
-          ok: false,
-          error: parsed.error || `HTTP ${res.status}`,
-        });
+        const text = await res.text();
+        console.log(`[reprocess-project] ${doc.name}: ${res.status} ${text.slice(0, 200)}`);
+      } catch (e) {
+        console.error(`[reprocess-project] ${doc.name} failed:`, (e as Error).message);
       }
-    } catch (e) {
-      results.push({
-        id: doc.id,
-        name: doc.name,
-        ok: false,
-        error: (e as Error).message,
-      });
     }
-  }
+    console.log(`[reprocess-project] DONE for project ${project.name} (${docList.length} docs)`);
+  };
 
-  const okCount = results.filter((r) => r.ok).length;
+  // @ts-ignore - EdgeRuntime is provided by Supabase Edge Runtime
+  if (typeof EdgeRuntime !== "undefined" && EdgeRuntime?.waitUntil) {
+    // @ts-ignore
+    EdgeRuntime.waitUntil(work());
+  } else {
+    work(); // best-effort
+  }
 
   return new Response(
     JSON.stringify({
       project: project.name,
-      total: results.length,
-      succeeded: okCount,
-      failed: results.length - okCount,
-      results,
+      queued: docList.length,
+      message: "Reprocessing started in background. Monitor documents.status to track progress.",
     }),
     {
-      status: 200,
+      status: 202,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     },
   );
