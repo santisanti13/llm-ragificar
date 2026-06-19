@@ -102,25 +102,38 @@ export function VoiceAssistant({ projectId }: VoiceAssistantProps) {
       const userTurn: Turn = { role: 'user', content: userText };
       setHistory((h) => [...h, userTurn]);
 
-      // RAG chat (mismo backend que el asistente escrito)
+      // RAG chat (mismo backend que el asistente escrito) - fetch directo para leer SSE
       setPhase('thinking');
-      const ragRes = await supabase.functions.invoke('rag-chat', {
-        body: {
+      const ragRes = await fetch(`${SUPABASE_URL}/functions/v1/rag-chat`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           projectId,
           messages: [...historyRef.current, userTurn].map((m) => ({
             role: m.role,
             content: m.content,
           })),
-        },
+        }),
       });
-      if (ragRes.error) throw new Error(ragRes.error.message || 'Error RAG');
+      if (!ragRes.ok || !ragRes.body) {
+        const err = await ragRes.json().catch(() => ({}));
+        throw new Error(err.error || 'Error RAG');
+      }
 
-      // rag-chat devuelve SSE → invoke nos da el texto crudo
       let assistantText = '';
-      const raw = ragRes.data;
-      if (typeof raw === 'string') {
-        // Parse SSE
-        for (const line of raw.split('\n')) {
+      const reader = ragRes.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+        for (const line of lines) {
           if (!line.startsWith('data:')) continue;
           const payload = line.slice(5).trim();
           if (!payload || payload === '[DONE]') continue;
@@ -130,8 +143,6 @@ export function VoiceAssistant({ projectId }: VoiceAssistantProps) {
             if (delta) assistantText += delta;
           } catch { /* skip */ }
         }
-      } else if (raw?.text) {
-        assistantText = raw.text;
       }
 
       assistantText = assistantText.trim();
