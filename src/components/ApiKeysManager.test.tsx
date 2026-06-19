@@ -10,6 +10,7 @@ const insertSpy = vi.fn();
 const eqProjectSpy = vi.fn();
 
 vi.mock("@/integrations/supabase/client", () => {
+  const USER_ID_INNER = "user-123";
   const builder = (table: string) => {
     if (table === "project_api_keys") {
       return {
@@ -55,7 +56,6 @@ vi.mock("@/integrations/supabase/client", () => {
         },
       };
     }
-    // api_query_logs
     return {
       select: () => ({
         eq: () => ({
@@ -70,7 +70,7 @@ vi.mock("@/integrations/supabase/client", () => {
     supabase: {
       from: vi.fn((table: string) => builder(table)),
       auth: {
-        getUser: vi.fn().mockResolvedValue({ data: { user: { id: USER_ID } } }),
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: USER_ID_INNER } } }),
       },
     },
   };
