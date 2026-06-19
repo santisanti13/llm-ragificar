@@ -186,7 +186,7 @@ serve(async (req) => {
         const embRes = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
           method: "POST",
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-          body: JSON.stringify({ model: "google/gemini-embedding-001", input: [searchText] }),
+          body: JSON.stringify({ model: "google/gemini-embedding-001", input: [searchText], dimensions: 768 }),
         });
         console.log(`[api-query] emb status=${embRes.status}`);
         if (embRes.ok) {
