@@ -5,9 +5,11 @@ import { ApiKeysManager } from "./ApiKeysManager";
 const PROJECT_ID = "27b2195a-d882-43bc-9e22-acda40d913d8";
 const USER_ID = "user-123";
 
-// Capture insert payload for assertions
-const insertSpy = vi.fn();
-const eqProjectSpy = vi.fn();
+// Use vi.hoisted so spies exist before vi.mock factory runs
+const { insertSpy, eqProjectSpy } = vi.hoisted(() => ({
+  insertSpy: vi.fn(),
+  eqProjectSpy: vi.fn(),
+}));
 
 vi.mock("@/integrations/supabase/client", () => {
   const USER_ID_INNER = "user-123";
