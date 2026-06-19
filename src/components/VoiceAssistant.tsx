@@ -1,214 +1,281 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { useConversation } from '@elevenlabs/react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Mic, MicOff, Phone, PhoneOff, Volume2, Loader2 } from 'lucide-react';
+import { Mic, Square, Volume2, Loader2 } from 'lucide-react';
 
 interface VoiceAssistantProps {
   projectId: string;
 }
 
+type Turn = { role: 'user' | 'assistant'; content: string };
+type Phase = 'idle' | 'recording' | 'transcribing' | 'thinking' | 'speaking';
+
 export function VoiceAssistant({ projectId }: VoiceAssistantProps) {
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [transcript, setTranscript] = useState<string[]>([]);
-  const [disconnectReason, setDisconnectReason] = useState<string>('');
-  const endingSessionRef = useRef(false);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [history, setHistory] = useState<Turn[]>([]);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const historyRef = useRef<Turn[]>([]);
+  useEffect(() => { historyRef.current = history; }, [history]);
 
-  const conversation = useConversation({
-    onConnect: () => {
-      console.log('[VoiceAssistant] Connected at', new Date().toISOString());
-      endingSessionRef.current = false;
-      toast.success('Conectado al asistente de voz');
-    },
-    onDisconnect: (reason?: any) => {
-      console.log('[VoiceAssistant] Disconnected at', new Date().toISOString(), 'reason:', reason);
-      setDisconnectReason(reason ? JSON.stringify(reason) : 'unknown');
-      if (!endingSessionRef.current) {
-        toast.info('Desconectado del asistente');
-      }
-    },
-    onMessage: (message: any) => {
-      console.log('[VoiceAssistant] Message:', message.type, message);
-      if (message.type === 'user_transcript' && message.user_transcription_event?.user_transcript) {
-        setTranscript(prev => [...prev, `Tú: ${message.user_transcription_event.user_transcript}`]);
-      } else if (message.type === 'agent_response' && message.agent_response_event?.agent_response) {
-        setTranscript(prev => [...prev, `Asistente: ${message.agent_response_event.agent_response}`]);
-      }
-    },
-    onError: (error: any) => {
-      console.error('[VoiceAssistant] Error:', error);
-      toast.error('Error en la conversación');
-    },
-  });
+  const cleanupStream = () => {
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  };
 
-  // Keep a stable ref to conversation for cleanup
-  const conversationRef = useRef(conversation);
-  useEffect(() => {
-    conversationRef.current = conversation;
-  }, [conversation]);
-
-  const startConversation = useCallback(async () => {
-    setIsConnecting(true);
+  const startRecording = useCallback(async () => {
+    if (phase !== 'idle') return;
     try {
-      // Request microphone permission
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      console.log('[VoiceAssistant] Microphone granted, tracks:', stream.getAudioTracks().length);
-
-      // Get token from edge function
-      const { data, error } = await supabase.functions.invoke('elevenlabs-conversation-token');
-
-      if (error) {
-        console.error('[VoiceAssistant] Token error:', error);
-        throw new Error('No se pudo obtener el token de conversación');
-      }
-
-      if (!data?.token) {
-        throw new Error('No se recibió token');
-      }
-
-      console.log('[VoiceAssistant] Starting session with token');
-
-      // Start the conversation with WebRTC
-      await conversation.startSession({
-        conversationToken: data.token,
-        connectionType: 'webrtc',
-      });
-
-      setTranscript([]);
-      setDisconnectReason('');
-    } catch (error: any) {
-      console.error('[VoiceAssistant] Failed to start:', error);
-      if (error.name === 'NotAllowedError') {
-        toast.error('Permiso de micrófono denegado. Habilita el acceso al micrófono.');
-      } else {
-        toast.error(error.message || 'Error al iniciar la conversación');
-      }
-    } finally {
-      setIsConnecting(false);
+      streamRef.current = stream;
+      const mimeType =
+        ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((t) =>
+          MediaRecorder.isTypeSupported(t)
+        ) || '';
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => e.data.size > 0 && chunksRef.current.push(e.data);
+      recorder.onstop = () => void handleStop();
+      recorder.start();
+      recorderRef.current = recorder;
+      setPhase('recording');
+    } catch (e: any) {
+      console.error(e);
+      toast.error(
+        e?.name === 'NotAllowedError'
+          ? 'Permiso de micrófono denegado'
+          : 'No se pudo acceder al micrófono'
+      );
+      cleanupStream();
     }
-  }, [conversation]);
+  }, [phase]);
 
-  const stopConversation = useCallback(async () => {
-    endingSessionRef.current = true;
-    await conversation.endSession();
-    toast.info('Conversación terminada');
-  }, [conversation]);
+  const stopRecording = useCallback(() => {
+    if (recorderRef.current && recorderRef.current.state !== 'inactive') {
+      recorderRef.current.stop();
+    }
+  }, []);
 
-  // Cleanup only on unmount
+  const handleStop = async () => {
+    const recorder = recorderRef.current;
+    const mime = recorder?.mimeType || 'audio/webm';
+    cleanupStream();
+    const blob = new Blob(chunksRef.current, { type: mime });
+    chunksRef.current = [];
+    if (blob.size < 2000) {
+      toast.error('Grabación demasiado corta');
+      setPhase('idle');
+      return;
+    }
+
+    setPhase('transcribing');
+    try {
+      const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+      const form = new FormData();
+      form.append('file', blob, `recording.${ext}`);
+
+      const sessionRes = await supabase.auth.getSession();
+      const token = sessionRes.data.session?.access_token;
+      if (!token) throw new Error('Sesión expirada');
+
+      const SUPABASE_URL = (import.meta as any).env.VITE_SUPABASE_URL;
+      const sttRes = await fetch(`${SUPABASE_URL}/functions/v1/voice-stt`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (!sttRes.ok) {
+        const err = await sttRes.json().catch(() => ({}));
+        throw new Error(err.error || 'Error de transcripción');
+      }
+      const { text: userText } = await sttRes.json();
+      if (!userText?.trim()) {
+        toast.error('No se detectó voz');
+        setPhase('idle');
+        return;
+      }
+
+      const userTurn: Turn = { role: 'user', content: userText };
+      setHistory((h) => [...h, userTurn]);
+
+      // RAG chat (mismo backend que el asistente escrito)
+      setPhase('thinking');
+      const ragRes = await supabase.functions.invoke('rag-chat', {
+        body: {
+          projectId,
+          messages: [...historyRef.current, userTurn].map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        },
+      });
+      if (ragRes.error) throw new Error(ragRes.error.message || 'Error RAG');
+
+      // rag-chat devuelve SSE → invoke nos da el texto crudo
+      let assistantText = '';
+      const raw = ragRes.data;
+      if (typeof raw === 'string') {
+        // Parse SSE
+        for (const line of raw.split('\n')) {
+          if (!line.startsWith('data:')) continue;
+          const payload = line.slice(5).trim();
+          if (!payload || payload === '[DONE]') continue;
+          try {
+            const j = JSON.parse(payload);
+            const delta = j.choices?.[0]?.delta?.content;
+            if (delta) assistantText += delta;
+          } catch { /* skip */ }
+        }
+      } else if (raw?.text) {
+        assistantText = raw.text;
+      }
+
+      assistantText = assistantText.trim();
+      if (!assistantText) {
+        toast.error('Respuesta vacía del asistente');
+        setPhase('idle');
+        return;
+      }
+
+      setHistory((h) => [...h, { role: 'assistant', content: assistantText }]);
+
+      // TTS
+      setPhase('speaking');
+      const ttsRes = await fetch(`${SUPABASE_URL}/functions/v1/voice-tts`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: assistantText, voice: 'alloy' }),
+      });
+      if (!ttsRes.ok) {
+        const err = await ttsRes.json().catch(() => ({}));
+        throw new Error(err.error || 'Error TTS');
+      }
+      const audioBlob = await ttsRes.blob();
+      const audioUrl = URL.createObjectURL(audioBlob);
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(audioUrl);
+        setPhase('idle');
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(audioUrl);
+        setPhase('idle');
+      };
+      await audio.play();
+    } catch (e: any) {
+      console.error(e);
+      toast.error(e?.message || 'Error en el flujo de voz');
+      setPhase('idle');
+    }
+  };
+
   useEffect(() => {
     return () => {
-      if (conversationRef.current?.status === 'connected') {
-        conversationRef.current.endSession();
-      }
+      cleanupStream();
+      audioRef.current?.pause();
     };
   }, []);
 
-  const isConnected = conversation.status === 'connected';
+  const isBusy = phase !== 'idle' && phase !== 'recording';
+  const statusText: Record<Phase, string> = {
+    idle: 'Mantén pulsado para hablar',
+    recording: 'Grabando... suelta para enviar',
+    transcribing: 'Transcribiendo...',
+    thinking: 'Pensando...',
+    speaking: 'Hablando...',
+  };
 
   return (
     <Card className="glass-strong">
       <CardContent className="p-6">
         <div className="flex flex-col items-center gap-6">
-          {/* Status indicator */}
-          <div className="flex items-center gap-3">
-            <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-success animate-pulse' : 'bg-muted'}`} />
-            <span className="text-sm font-medium text-muted-foreground">
-              {isConnected ? 'Conectado' : 'Desconectado'}
-            </span>
-          </div>
-
-          {/* Voice visualization */}
-          <div className={`relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${
-            isConnected 
-              ? conversation.isSpeaking 
-                ? 'gradient-primary glow scale-110' 
-                : 'bg-primary/20 border-2 border-primary/50'
-              : 'bg-muted/50 border-2 border-border'
-          }`}>
-            {isConnecting ? (
+          <div
+            className={`relative w-32 h-32 rounded-full flex items-center justify-center transition-all duration-300 ${
+              phase === 'recording'
+                ? 'gradient-primary glow scale-110'
+                : phase === 'speaking'
+                ? 'gradient-primary glow'
+                : isBusy
+                ? 'bg-primary/20 border-2 border-primary/50'
+                : 'bg-muted/50 border-2 border-border'
+            }`}
+          >
+            {phase === 'transcribing' || phase === 'thinking' ? (
               <Loader2 className="w-12 h-12 text-primary animate-spin" />
-            ) : isConnected ? (
-              conversation.isSpeaking ? (
-                <Volume2 className="w-12 h-12 text-primary-foreground animate-pulse" />
-              ) : (
-                <Mic className="w-12 h-12 text-primary" />
-              )
+            ) : phase === 'speaking' ? (
+              <Volume2 className="w-12 h-12 text-primary-foreground animate-pulse" />
+            ) : phase === 'recording' ? (
+              <Square className="w-12 h-12 text-primary-foreground" />
             ) : (
-              <MicOff className="w-12 h-12 text-muted-foreground" />
+              <Mic className="w-12 h-12 text-muted-foreground" />
             )}
-            
-            {/* Speaking animation rings */}
-            {isConnected && conversation.isSpeaking && (
+            {phase === 'recording' && (
               <>
                 <div className="absolute inset-0 rounded-full border-2 border-primary/50 animate-ping" />
-                <div className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping" style={{ animationDelay: '0.2s' }} />
+                <div
+                  className="absolute inset-0 rounded-full border-2 border-primary/30 animate-ping"
+                  style={{ animationDelay: '0.2s' }}
+                />
               </>
             )}
           </div>
 
-          {/* Status text */}
-          <p className="text-center text-sm text-muted-foreground">
-            {isConnecting 
-              ? 'Conectando...' 
-              : isConnected 
-                ? conversation.isSpeaking 
-                  ? 'El asistente está hablando...'
-                  : 'Escuchando...'
-                : 'Haz clic en el botón para iniciar'}
-          </p>
+          <p className="text-center text-sm text-muted-foreground">{statusText[phase]}</p>
 
-          {/* Disconnect reason for debugging */}
-          {disconnectReason && !isConnected && (
-            <p className="text-xs text-muted-foreground/60">
-              Última desconexión: {disconnectReason}
-            </p>
-          )}
+          <Button
+            size="lg"
+            disabled={isBusy}
+            onMouseDown={startRecording}
+            onMouseUp={stopRecording}
+            onMouseLeave={() => phase === 'recording' && stopRecording()}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              startRecording();
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              stopRecording();
+            }}
+            className={
+              phase === 'recording'
+                ? 'bg-destructive hover:bg-destructive/90'
+                : 'gradient-primary glow hover:scale-105 transition-transform'
+            }
+          >
+            {phase === 'recording' ? (
+              <>
+                <Square className="mr-2 h-5 w-5" /> Soltar para enviar
+              </>
+            ) : (
+              <>
+                <Mic className="mr-2 h-5 w-5" /> Mantén pulsado para hablar
+              </>
+            )}
+          </Button>
 
-          {/* Control button */}
-          {!isConnected ? (
-            <Button
-              onClick={startConversation}
-              disabled={isConnecting}
-              size="lg"
-              className="gradient-primary glow hover:scale-105 transition-transform"
-            >
-              {isConnecting ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Conectando...
-                </>
-              ) : (
-                <>
-                  <Phone className="mr-2 h-5 w-5" />
-                  Iniciar conversación
-                </>
-              )}
-            </Button>
-          ) : (
-            <Button
-              onClick={stopConversation}
-              variant="destructive"
-              size="lg"
-              className="hover:scale-105 transition-transform"
-            >
-              <PhoneOff className="mr-2 h-5 w-5" />
-              Terminar conversación
-            </Button>
-          )}
-
-          {/* Transcript */}
-          {transcript.length > 0 && (
+          {history.length > 0 && (
             <div className="w-full mt-4">
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">Transcripción</h4>
-              <div className="bg-muted/50 rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
-                {transcript.map((line, index) => (
-                  <p 
-                    key={index} 
-                    className={`text-sm ${line.startsWith('Tú:') ? 'text-primary' : 'text-foreground'}`}
+              <h4 className="text-sm font-medium text-muted-foreground mb-2">Conversación</h4>
+              <div className="bg-muted/50 rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
+                {history.map((t, i) => (
+                  <p
+                    key={i}
+                    className={`text-sm ${
+                      t.role === 'user' ? 'text-primary' : 'text-foreground'
+                    }`}
                   >
-                    {line}
+                    <span className="font-medium">
+                      {t.role === 'user' ? 'Tú: ' : 'Asistente: '}
+                    </span>
+                    {t.content}
                   </p>
                 ))}
               </div>
