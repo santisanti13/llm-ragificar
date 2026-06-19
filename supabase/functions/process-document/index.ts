@@ -48,7 +48,9 @@ async function extractTextFromPdf(pdfBase64: string, apiKey: string): Promise<st
   return data.choices?.[0]?.message?.content || "";
 }
 
-// Generate embeddings via Lovable AI Gateway (Gemini embedding-001, 768 dims)
+// Generate embeddings via Lovable AI Gateway.
+// IMPORTANT: document_chunks.embedding column is vector(768). Gemini supports
+// Matryoshka truncation via `dimensions` to match the column size.
 async function generateEmbeddings(texts: string[], apiKey: string): Promise<(number[] | null)[]> {
   const results: (number[] | null)[] = [];
   const batchSize = 20;
@@ -58,10 +60,15 @@ async function generateEmbeddings(texts: string[], apiKey: string): Promise<(num
       const res = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
         method: "POST",
         headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "google/gemini-embedding-001", input: batch }),
+        body: JSON.stringify({
+          model: "google/gemini-embedding-001",
+          input: batch,
+          dimensions: 768,
+        }),
       });
       if (!res.ok) {
-        console.error("Embedding batch failed:", res.status, await res.text());
+        const errText = await res.text();
+        console.error(`Embedding batch starting at ${i} failed: ${res.status} ${errText}`);
         for (let j = 0; j < batch.length; j++) results.push(null);
         continue;
       }
@@ -233,38 +240,53 @@ serve(async (req) => {
     // Delete old chunks for this document (for re-processing)
     await supabaseAdmin.from("document_chunks").delete().eq("document_id", documentId);
 
-    if (validChunks.length > 0) {
-      console.log(`Generating embeddings for ${validChunks.length} chunks...`);
-      const embeddings = await generateEmbeddings(validChunks, LOVABLE_API_KEY);
-      const successCount = embeddings.filter((e) => e !== null).length;
-      console.log(`Got ${successCount}/${validChunks.length} embeddings`);
-
-      const chunkRecords = validChunks.map((content, index) => ({
-        document_id: documentId,
-        project_id: doc.project_id,
-        content,
-        chunk_index: index,
-        // pgvector accepts a string like "[0.1,0.2,...]"
-        embedding: embeddings[index] ? `[${embeddings[index]!.join(",")}]` : null,
-      }));
-
-      const { error: insertError } = await supabaseAdmin.from("document_chunks").insert(chunkRecords);
-      if (insertError) {
-        console.error("Insert error:", JSON.stringify(insertError));
-        throw new Error(`Failed to insert chunks: ${insertError.message}`);
-      }
-      console.log(`Inserted ${chunkRecords.length} chunks successfully`);
+    if (validChunks.length === 0) {
+      throw new Error("Document yielded 0 chunks after splitting");
     }
 
-    await supabaseAdmin.from("documents").update({ 
-      status: "ready", 
-      chunk_count: validChunks.length,
-      error_message: null 
+    console.log(`Generating embeddings for ${validChunks.length} chunks...`);
+    const embeddings = await generateEmbeddings(validChunks, LOVABLE_API_KEY);
+    const successCount = embeddings.filter((e) => e !== null).length;
+    console.log(`Got ${successCount}/${validChunks.length} embeddings`);
+
+    const chunkRecords = validChunks.map((content, index) => ({
+      document_id: documentId,
+      project_id: doc.project_id,
+      content,
+      chunk_index: index,
+      // pgvector accepts a string like "[0.1,0.2,...]"
+      embedding: embeddings[index] ? `[${embeddings[index]!.join(",")}]` : null,
+    }));
+
+    const { error: insertError } = await supabaseAdmin.from("document_chunks").insert(chunkRecords);
+    if (insertError) {
+      console.error("Insert error:", JSON.stringify(insertError));
+      throw new Error(`Failed to insert chunks: ${insertError.message}`);
+    }
+
+    // Verify chunks actually landed (defensive — catches silent FK / RLS issues)
+    const { count: persistedCount, error: countError } = await supabaseAdmin
+      .from("document_chunks")
+      .select("id", { count: "exact", head: true })
+      .eq("document_id", documentId);
+
+    if (countError || !persistedCount || persistedCount === 0) {
+      throw new Error(`Chunks were not persisted (count=${persistedCount ?? 0})`);
+    }
+
+    console.log(`Inserted ${persistedCount} chunks successfully (${successCount} with embeddings)`);
+
+    await supabaseAdmin.from("documents").update({
+      status: "ready",
+      chunk_count: persistedCount,
+      error_message: null,
     }).eq("id", documentId);
 
-    console.log(`Document processed: ${validChunks.length} chunks`);
-
-    return new Response(JSON.stringify({ success: true, chunks: validChunks.length }), {
+    return new Response(JSON.stringify({
+      success: true,
+      chunks: persistedCount,
+      embeddings: successCount,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
