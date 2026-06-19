@@ -188,33 +188,40 @@ serve(async (req) => {
           headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
           body: JSON.stringify({ model: "google/gemini-embedding-001", input: [searchText] }),
         });
+        console.log(`[api-query] emb status=${embRes.status}`);
         if (embRes.ok) {
           const embJson = await embRes.json();
           const queryEmbedding = embJson.data?.[0]?.embedding;
+          console.log(`[api-query] emb dims=${queryEmbedding?.length}`);
           if (queryEmbedding) {
-            const { data: semChunks } = await supabaseClient.rpc("match_document_chunks", {
+            const { data: semChunks, error: semErr } = await supabaseClient.rpc("match_document_chunks", {
               query_embedding: `[${queryEmbedding.join(",")}]`,
               match_project_id: project_id,
               match_threshold: similarityThreshold,
               match_count: matchCount,
             });
+            console.log(`[api-query] sem thr=${similarityThreshold} n=${semChunks?.length ?? 0} err=${semErr?.message ?? "none"}`);
             if (semChunks) {
               for (const c of semChunks) {
                 merged.set(c.id, { content: c.content, score: 1.0 + (c.similarity ?? 0) });
               }
             }
           }
+        } else {
+          const t = await embRes.text();
+          console.error(`[api-query] emb body=${t.slice(0,200)}`);
         }
       } catch (e) {
-        console.error("Semantic search failed:", e);
+        console.error("Semantic search failed:", (e as Error).message);
       }
 
       try {
-        const { data: ftsChunks } = await supabaseClient.rpc("search_document_chunks_fts", {
+        const { data: ftsChunks, error: ftsErr } = await supabaseClient.rpc("search_document_chunks_fts", {
           search_query: searchText,
           search_project_id: project_id,
           max_results: matchCount,
         });
+        console.log(`[api-query] fts n=${ftsChunks?.length ?? 0} err=${ftsErr?.message ?? "none"}`);
         if (ftsChunks) {
           for (const c of ftsChunks) {
             const existing = merged.get(c.id);
@@ -223,9 +230,10 @@ serve(async (req) => {
           }
         }
       } catch (e) {
-        console.error("FTS search failed:", e);
+        console.error("FTS search failed:", (e as Error).message);
       }
 
+      console.log(`[api-query] merged=${merged.size}`);
       if (merged.size > 0) {
         const sorted = [...merged.values()].sort((a, b) => b.score - a.score).slice(0, matchCount);
         context = sorted.map((c) => c.content).join("\n\n");
