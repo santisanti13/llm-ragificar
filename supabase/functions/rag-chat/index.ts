@@ -128,7 +128,7 @@ serve(async (req) => {
         console.error("Semantic search failed:", e);
       }
 
-      // 2) FTS keyword search
+      // 2) FTS keyword search (filtered by normalized rank vs similarity_threshold)
       try {
         const { data: ftsChunks } = await supabaseAdmin.rpc("search_document_chunks_fts", {
           search_query: lastUserMessage,
@@ -136,12 +136,20 @@ serve(async (req) => {
           max_results: matchCount,
         });
         if (ftsChunks && ftsChunks.length > 0) {
+          const maxRank = Math.max(...ftsChunks.map((c: any) => c.rank ?? 0), 1e-6);
+          let ftsKept = 0;
           for (const c of ftsChunks) {
+            const normRank = (c.rank ?? 0) / maxRank; // 0..1
             const existing = merged.get(c.id);
-            if (existing) existing.score += 0.5 + (c.rank ?? 0); // boost if in both
-            else merged.set(c.id, { content: c.content, score: 0.5 + (c.rank ?? 0) });
+            if (existing) {
+              existing.score += 0.5 + (c.rank ?? 0); // already passed semantic threshold
+              ftsKept++;
+            } else if (normRank >= similarityThreshold) {
+              merged.set(c.id, { content: c.content, score: 0.5 + (c.rank ?? 0) });
+              ftsKept++;
+            }
           }
-          console.log(`FTS: ${ftsChunks.length} chunks`);
+          console.log(`FTS: ${ftsChunks.length} found, ${ftsKept} kept (threshold=${similarityThreshold})`);
         }
       } catch (e) {
         console.error("FTS search failed:", e);

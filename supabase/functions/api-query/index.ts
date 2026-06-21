@@ -222,12 +222,21 @@ serve(async (req) => {
           max_results: matchCount,
         });
         console.log(`[api-query] fts n=${ftsChunks?.length ?? 0} err=${ftsErr?.message ?? "none"}`);
-        if (ftsChunks) {
+        if (ftsChunks && ftsChunks.length > 0) {
+          const maxRank = Math.max(...ftsChunks.map((c: any) => c.rank ?? 0), 1e-6);
+          let ftsKept = 0;
           for (const c of ftsChunks) {
+            const normRank = (c.rank ?? 0) / maxRank;
             const existing = merged.get(c.id);
-            if (existing) existing.score += 0.5 + (c.rank ?? 0);
-            else merged.set(c.id, { content: c.content, score: 0.5 + (c.rank ?? 0) });
+            if (existing) {
+              existing.score += 0.5 + (c.rank ?? 0);
+              ftsKept++;
+            } else if (normRank >= similarityThreshold) {
+              merged.set(c.id, { content: c.content, score: 0.5 + (c.rank ?? 0) });
+              ftsKept++;
+            }
           }
+          console.log(`[api-query] fts kept=${ftsKept} threshold=${similarityThreshold}`);
         }
       } catch (e) {
         console.error("FTS search failed:", (e as Error).message);
