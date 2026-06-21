@@ -6,7 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Save, Plus, Trash2, MessageCircle, Sparkles, Loader2, SlidersHorizontal, BookTemplate, Zap } from 'lucide-react';
+import { Save, Plus, Trash2, MessageCircle, Sparkles, Loader2, SlidersHorizontal, BookTemplate, Zap, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Slider } from '@/components/ui/slider';
@@ -33,6 +34,7 @@ interface ProjectTraining {
 
 interface TrainingConfigProps {
   projectId: string;
+  onReprocessAll?: () => void | Promise<void>;
 }
 
 const PROMPT_TEMPLATES = [
@@ -93,7 +95,7 @@ const MODELS = [
   { value: 'google/gemini-3-flash-preview', label: 'Gemini 3 Flash', desc: 'Nueva generación, rápido' },
 ];
 
-export function TrainingConfig({ projectId }: TrainingConfigProps) {
+export function TrainingConfig({ projectId, onReprocessAll }: TrainingConfigProps) {
   const [training, setTraining] = useState<ProjectTraining>({
     system_prompt: '',
     first_message: '',
@@ -425,6 +427,23 @@ export function TrainingConfig({ projectId }: TrainingConfigProps) {
           </div>
 
           <Separator />
+
+          <Alert className="border-warning/40 bg-warning/5">
+            <AlertTriangle className="h-4 w-4 text-warning" />
+            <AlertTitle>Requiere reprocesado</AlertTitle>
+            <AlertDescription className="space-y-3">
+              <p className="text-xs">
+                Los parámetros <strong>Tamaño de chunk</strong> y <strong>Overlap</strong> solo se aplican al ingerir documentos.
+                Para aplicarlos a los documentos ya existentes debes reprocesarlos después de guardar.
+              </p>
+              {onReprocessAll && (
+                <Button size="sm" variant="outline" onClick={() => onReprocessAll()}>
+                  <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                  Reprocesar todos los documentos
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
 
           {/* Chunk Size */}
           <div className="space-y-3">
