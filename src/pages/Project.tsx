@@ -405,7 +405,7 @@ export default function ProjectPage() {
           </TabsContent>
 
           <TabsContent value="training" className="animate-fade-in">
-            <TrainingConfig projectId={id!} />
+            <TrainingConfig projectId={id!} onReprocessAll={handleReprocessAll} />
           </TabsContent>
 
           <TabsContent value="chat" className="animate-fade-in">
