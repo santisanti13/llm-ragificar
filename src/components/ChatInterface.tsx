@@ -61,11 +61,20 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
     let assistantContent = '';
 
     try {
+      const { supabase } = await import('@/integrations/supabase/client');
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Sesión expirada. Vuelve a iniciar sesión.');
+        setIsLoading(false);
+        return;
+      }
+
       const resp = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           projectId,
