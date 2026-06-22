@@ -310,6 +310,28 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
                         ) : (
                           <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</p>
                         )}
+                        {message.role === 'assistant' && message.sources && message.sources.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/40">
+                            <p className="text-xs font-medium text-muted-foreground mb-2">
+                              Fuentes ({message.sources.length})
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {Array.from(
+                                new Map(message.sources.map(s => [`${s.document_id}-${s.chunk_index}`, s])).values()
+                              ).map((s, i) => (
+                                <div
+                                  key={`${s.document_id}-${s.chunk_index}-${i}`}
+                                  title={s.snippet}
+                                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-background/60 border border-border/50 text-xs text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors cursor-help max-w-full"
+                                >
+                                  <FileText className="h-3 w-3 flex-shrink-0" />
+                                  <span className="truncate max-w-[200px]">{s.filename}</span>
+                                  <span className="text-muted-foreground/60">#{s.chunk_index}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                       {message.role === 'assistant' && message.content && (
                         <Button
