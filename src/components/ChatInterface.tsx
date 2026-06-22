@@ -134,6 +134,13 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
 
           try {
             const parsed = JSON.parse(jsonStr);
+            if (parsed.sources && Array.isArray(parsed.sources)) {
+              const sources = parsed.sources as Source[];
+              setMessages(prev =>
+                prev.map(m => m.id === assistantId ? { ...m, sources } : m)
+              );
+              continue;
+            }
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantContent += content;
