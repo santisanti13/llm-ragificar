@@ -3,15 +3,23 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { Send, Loader2, User, Bot, Sparkles, Copy, Check, RotateCcw } from 'lucide-react';
+import { Send, Loader2, User, Bot, Sparkles, Copy, Check, RotateCcw, FileText } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import ReactMarkdown from 'react-markdown';
+
+interface Source {
+  document_id: string;
+  filename: string;
+  chunk_index: number;
+  snippet: string;
+}
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  sources?: Source[];
 }
 
 interface ChatInterfaceProps {
