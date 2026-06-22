@@ -93,9 +93,11 @@ serve(async (req) => {
     let context = "";
     let chunksUsed = 0;
     let searchSource = "none";
+    type SelectedChunk = { id: string; content: string; score: number; document_id?: string; chunk_index?: number };
+    let selectedChunks: SelectedChunk[] = [];
 
     if (lastUserMessage) {
-      const merged = new Map<string, { content: string; score: number }>();
+      const merged = new Map<string, SelectedChunk>();
 
       // 1) Semantic search via embeddings
       try {
@@ -116,7 +118,13 @@ serve(async (req) => {
             });
             if (semChunks && semChunks.length > 0) {
               for (const c of semChunks) {
-                merged.set(c.id, { content: c.content, score: 1.0 + (c.similarity ?? 0) });
+                merged.set(c.id, {
+                  id: c.id,
+                  content: c.content,
+                  score: 1.0 + (c.similarity ?? 0),
+                  document_id: c.document_id,
+                  chunk_index: c.chunk_index,
+                });
               }
               console.log(`Semantic: ${semChunks.length} chunks`);
             }
@@ -128,7 +136,7 @@ serve(async (req) => {
         console.error("Semantic search failed:", e);
       }
 
-      // 2) FTS keyword search (filtered by normalized rank vs similarity_threshold)
+      // 2) FTS keyword search
       try {
         const { data: ftsChunks } = await supabaseAdmin.rpc("search_document_chunks_fts", {
           search_query: lastUserMessage,
@@ -139,33 +147,57 @@ serve(async (req) => {
           const maxRank = Math.max(...ftsChunks.map((c: any) => c.rank ?? 0), 1e-6);
           let ftsKept = 0;
           for (const c of ftsChunks) {
-            const normRank = (c.rank ?? 0) / maxRank; // 0..1
+            const normRank = (c.rank ?? 0) / maxRank;
             const existing = merged.get(c.id);
             if (existing) {
-              existing.score += 0.5 + (c.rank ?? 0); // already passed semantic threshold
+              existing.score += 0.5 + (c.rank ?? 0);
               ftsKept++;
             } else if (normRank >= similarityThreshold) {
-              merged.set(c.id, { content: c.content, score: 0.5 + (c.rank ?? 0) });
+              merged.set(c.id, {
+                id: c.id,
+                content: c.content,
+                score: 0.5 + (c.rank ?? 0),
+                document_id: c.document_id,
+                chunk_index: c.chunk_index,
+              });
               ftsKept++;
             }
           }
-          console.log(`FTS: ${ftsChunks.length} found, ${ftsKept} kept (threshold=${similarityThreshold})`);
+          console.log(`FTS: ${ftsChunks.length} found, ${ftsKept} kept`);
         }
       } catch (e) {
         console.error("FTS search failed:", e);
       }
 
       if (merged.size > 0) {
-        const sorted = [...merged.values()].sort((a, b) => b.score - a.score).slice(0, matchCount);
-        context = sorted.map((c) => c.content).join("\n\n");
-        chunksUsed = sorted.length;
+        selectedChunks = [...merged.values()].sort((a, b) => b.score - a.score).slice(0, matchCount);
+        context = selectedChunks.map((c) => c.content).join("\n\n");
+        chunksUsed = selectedChunks.length;
         searchSource = "hybrid";
       }
     }
 
-    console.log(`Search: ${searchSource}, chunks=${chunksUsed}`);
+    // Resolve document filenames for citations
+    const sources: Array<{ document_id: string; filename: string; chunk_index: number; snippet: string }> = [];
+    if (selectedChunks.length > 0) {
+      const docIds = [...new Set(selectedChunks.map((c) => c.document_id).filter(Boolean) as string[])];
+      const { data: docs } = await supabaseAdmin
+        .from("documents")
+        .select("id, filename")
+        .in("id", docIds);
+      const docMap = new Map((docs || []).map((d: any) => [d.id, d.filename]));
+      for (const c of selectedChunks) {
+        if (!c.document_id) continue;
+        sources.push({
+          document_id: c.document_id,
+          filename: docMap.get(c.document_id) || "Documento",
+          chunk_index: c.chunk_index ?? 0,
+          snippet: (c.content || "").slice(0, 220),
+        });
+      }
+    }
 
-    console.log(`Model: ${model}, Temp: ${temperature}, Chunks: ${chunksUsed}, Examples: ${examples.length}`);
+    console.log(`Search: ${searchSource}, chunks=${chunksUsed}, sources=${sources.length}`);
 
     // Build system prompt
     let systemPrompt =
@@ -186,7 +218,7 @@ serve(async (req) => {
 
     systemPrompt += "\n\nSi la respuesta no está en el contexto, indica amablemente que no tienes esa información.";
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -197,26 +229,44 @@ serve(async (req) => {
       }),
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-
-      if (response.status === 429) {
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error("AI gateway error:", aiResponse.status, errorText);
+      if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Límite de solicitudes excedido." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
+      if (aiResponse.status === 402) {
         return new Response(JSON.stringify({ error: "Créditos agotados." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error(`AI error: ${response.status}`);
+      throw new Error(`AI error: ${aiResponse.status}`);
     }
 
-    return new Response(response.body, {
+    // Prepend a sources SSE event, then pipe the AI stream
+    const encoder = new TextEncoder();
+    const sourcesEvent = `event: sources\ndata: ${JSON.stringify({ sources })}\n\n`;
+    const aiReader = aiResponse.body!.getReader();
+    const stream = new ReadableStream({
+      async start(controller) {
+        controller.enqueue(encoder.encode(sourcesEvent));
+        try {
+          while (true) {
+            const { done, value } = await aiReader.read();
+            if (done) break;
+            controller.enqueue(value);
+          }
+        } catch (e) {
+          console.error("Stream pipe error:", e);
+        } finally {
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(stream, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
