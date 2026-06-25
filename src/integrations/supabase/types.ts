@@ -112,6 +112,7 @@ export type Database = {
           id: string
           metadata: Json | null
           project_id: string
+          user_id: string
         }
         Insert: {
           chunk_index: number
@@ -124,6 +125,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           project_id: string
+          user_id: string
         }
         Update: {
           chunk_index?: number
@@ -136,6 +138,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           project_id?: string
+          user_id?: string
         }
         Relationships: [
           {
