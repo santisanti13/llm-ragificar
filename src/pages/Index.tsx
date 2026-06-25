@@ -84,7 +84,7 @@ export default function Index() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="lg:hidden bg-background border-b border-border animate-fade-in">
+          <div id="mobile-menu" className="lg:hidden bg-background border-b border-border animate-fade-in">
             <div className="container mx-auto px-6 py-6 flex flex-col gap-4">
               {navLinks.map((link) => (
                 <a
