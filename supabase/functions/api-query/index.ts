@@ -169,7 +169,7 @@ serve(async (req) => {
 
     const training = trainingRes.data;
     const examples = examplesRes.data || [];
-    const temperature = training?.temperature ?? 0.7;
+    const temperature = training?.temperature ?? 0.2; // Fix 1: lower default for grounded answers
     const matchCount = training?.match_count ?? 8;
     const similarityThreshold = training?.similarity_threshold ?? 0.3;
     const model = training?.model || "google/gemini-2.5-flash";
@@ -178,9 +178,11 @@ serve(async (req) => {
     const searchText = query || messages[messages.length - 1]?.content || "";
     let context = "";
     let chunksUsed = 0;
+    type ScoredChunk = { id: string; content: string; score: number };
+    let selectedChunks: ScoredChunk[] = [];
 
     if (searchText) {
-      const merged = new Map<string, { content: string; score: number }>();
+      const merged = new Map<string, ScoredChunk>();
 
       try {
         const embRes = await fetch("https://ai.gateway.lovable.dev/v1/embeddings", {
@@ -203,7 +205,7 @@ serve(async (req) => {
             console.log(`[api-query] sem thr=${similarityThreshold} n=${semChunks?.length ?? 0} err=${semErr?.message ?? "none"}`);
             if (semChunks) {
               for (const c of semChunks) {
-                merged.set(c.id, { content: c.content, score: 1.0 + (c.similarity ?? 0) });
+                merged.set(c.id, { id: c.id, content: c.content, score: 1.0 + (c.similarity ?? 0) });
               }
             }
           }
@@ -232,7 +234,7 @@ serve(async (req) => {
               existing.score += 0.5 + (c.rank ?? 0);
               ftsKept++;
             } else if (normRank >= similarityThreshold) {
-              merged.set(c.id, { content: c.content, score: 0.5 + (c.rank ?? 0) });
+              merged.set(c.id, { id: c.id, content: c.content, score: 0.5 + (c.rank ?? 0) });
               ftsKept++;
             }
           }
@@ -244,15 +246,47 @@ serve(async (req) => {
 
       console.log(`[api-query] merged=${merged.size}`);
       if (merged.size > 0) {
-        const sorted = [...merged.values()].sort((a, b) => b.score - a.score).slice(0, matchCount);
-        context = sorted.map((c) => c.content).join("\n\n");
-        chunksUsed = sorted.length;
+        selectedChunks = [...merged.values()].sort((a, b) => b.score - a.score).slice(0, matchCount);
+        // Fix 3: number chunks so the model can cite [n]
+        context = selectedChunks.map((c, i) => `[${i + 1}] ${c.content}`).join("\n\n");
+        chunksUsed = selectedChunks.length;
       }
     }
 
-    // Build system prompt
+    // Fix 4: short-circuit when no relevant context was retrieved
+    if (!context || chunksUsed === 0) {
+      const fallback = "No encontré información relevante en la documentación para responder a esa pregunta.";
+      console.log("[api-query] Empty context — short-circuiting LLM call");
+
+      const queryText = (query || messages?.[messages.length - 1]?.content || "").substring(0, 1000);
+      await supabaseClient.from("api_query_logs").insert({
+        project_id,
+        user_id: project.user_id,
+        api_key_id: apiKeyRecord.id,
+        query: queryText,
+        response_preview: fallback.substring(0, 200),
+        tokens_used: 0,
+        latency_ms: 0,
+        status: "no_context",
+      });
+
+      return new Response(
+        JSON.stringify({
+          response: fallback,
+          metadata: {
+            project_id, model, latency_ms: 0,
+            chunks_used: 0, examples_used: 0,
+            usage: { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 },
+            short_circuited: true,
+          },
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Build system prompt (Fix 2: strong grounding default)
     let systemPrompt = training?.system_prompt?.trim() ||
-      "Eres un asistente experto que responde preguntas basándote en el contexto proporcionado. Responde de forma clara y precisa.";
+      "Eres un asistente experto que responde EXCLUSIVAMENTE con información presente en el CONTEXTO DOCUMENTAL proporcionado. Reglas estrictas: (1) Si la información no aparece de forma explícita en el contexto, responde únicamente: 'No tengo esa información en la documentación.' (2) No infieras, no completes con conocimiento general, no inventes datos, cifras ni nombres. (3) Cita las fuentes usando los números de los fragmentos entre corchetes, por ejemplo [1], [2], cuando uses información de un fragmento. (4) Responde en español de forma clara y precisa.";
 
     if (examples.length > 0) {
       systemPrompt += "\n\n## Ejemplos de cómo debes responder:\n";
@@ -262,11 +296,29 @@ serve(async (req) => {
       systemPrompt += "\nSigue el estilo de estos ejemplos al responder.";
     }
 
-    if (context) {
-      systemPrompt += `\n\n## CONTEXTO (usa esta información para responder):\n${context}`;
+    // Fix 5: token budget guard
+    const MODEL_CTX_TOKENS = 128000;
+    const BUDGET_TOKENS = Math.floor(MODEL_CTX_TOKENS * 0.7);
+    const estimateTokens = (s: string) => Math.ceil(s.length / 4);
+    const buildContext = (chunks: ScoredChunk[]) =>
+      chunks.map((c, i) => `[${i + 1}] ${c.content}`).join("\n\n");
+    const historyText = (messages || [{ content: query || "" }]).map((m: any) => m.content || "").join("\n");
+    const baseTokens = estimateTokens(systemPrompt) + estimateTokens(historyText);
+    let trimmed = 0;
+    while (
+      selectedChunks.length > 1 &&
+      baseTokens + estimateTokens(buildContext(selectedChunks)) > BUDGET_TOKENS
+    ) {
+      selectedChunks.pop();
+      trimmed++;
+    }
+    if (trimmed > 0) {
+      console.log(`[api-query] Token budget: trimmed ${trimmed} chunks to fit ${BUDGET_TOKENS} tokens`);
+      context = buildContext(selectedChunks);
+      chunksUsed = selectedChunks.length;
     }
 
-    systemPrompt += "\n\nSi la respuesta no está en el contexto, indica amablemente que no tienes esa información.";
+    systemPrompt += `\n\n## CONTEXTO DOCUMENTAL (usa esta información para responder):\n${context}`;
 
     const chatMessages = messages || [{ role: "user", content: query }];
     const startTime = Date.now();
