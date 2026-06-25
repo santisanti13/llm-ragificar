@@ -76,9 +76,10 @@ export default function Index() {
             >
               EMPEZAR GRATIS
             </Button>
-            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"} aria-expanded={mobileMenuOpen} aria-controls="mobile-menu">
+              {mobileMenuOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
             </Button>
+
           </div>
         </div>
 
@@ -115,12 +116,11 @@ export default function Index() {
 
           {/* Giant headline */}
           <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-extrabold leading-[0.9] tracking-tight mb-8">
-            Construye tu{' '}
-            <br className="hidden md:block" />
-            <span className="text-gradient">API de</span>
+            RAGify — <span className="text-gradient">API de RAG</span>
             <br />
-            <span className="text-gradient">Conocimiento IA.</span>
+            <span className="text-gradient">inteligente</span> para documentos.
           </h1>
+
 
           {/* Subtitle - monospaced */}
           <p className="font-mono text-sm md:text-base text-muted-foreground max-w-xl mb-10 leading-relaxed">
@@ -449,7 +449,8 @@ console.log(data.answer);`}
               className="gradient-primary h-14 px-10 font-mono text-sm tracking-wider rounded-none hover:opacity-90 transition-opacity"
               onClick={() => navigate('/auth')}
             >
-              EMPEZAR GRATIS →
+              CREAR MI API DE RAG →
+
             </Button>
 
             <div className="flex flex-wrap gap-8 mt-12 pt-8 border-t border-border">
