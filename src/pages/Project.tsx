@@ -449,6 +449,10 @@ export default function ProjectPage() {
           <TabsContent value="docs" className="animate-fade-in">
             <ApiDocumentation projectId={id!} />
           </TabsContent>
+
+          <TabsContent value="mcp" className="animate-fade-in">
+            <McpServerInfo projectId={id!} />
+          </TabsContent>
         </Tabs>
       </main>
     </div>
