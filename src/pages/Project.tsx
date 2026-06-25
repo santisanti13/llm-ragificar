@@ -338,8 +338,8 @@ export default function ProjectPage() {
                     <p className="font-medium text-primary">Suelta los archivos aquí</p>
                   ) : (
                     <>
-                      <p className="font-medium mb-1">Arrastra tus PDFs aquí</p>
-                      <p className="text-sm text-muted-foreground">o haz clic para seleccionar archivos</p>
+                      <p className="font-medium mb-1">Arrastra tus documentos aquí</p>
+                      <p className="text-sm text-muted-foreground">PDF, TXT, MD, JSON, CSV, HTML, XML, YAML y más</p>
                     </>
                   )}
                 </div>
