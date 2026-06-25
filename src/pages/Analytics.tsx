@@ -153,7 +153,7 @@ const Analytics = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Volver
           </Button>
-          <img src={logoWhite} alt="RAGify" className="h-8" />
+          <img src={logoWhite} alt="RAGify" className="h-12" />
           <div className="w-24" />
         </div>
       </header>

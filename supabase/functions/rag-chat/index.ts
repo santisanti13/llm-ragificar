@@ -6,6 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Conversational memory thresholds
+const MAX_RECENT_MESSAGES = 6; // keep last N raw turns in context
+const SUMMARIZE_AFTER = 10; // start summarizing once thread has > N messages
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -46,7 +50,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const { projectId, messages } = await req.json();
+    const { projectId, messages, threadId: incomingThreadId } = await req.json();
 
     // Verify project ownership
     const { data: project, error: projectError } = await supabaseAdmin
@@ -62,9 +66,54 @@ serve(async (req) => {
       });
     }
 
-    console.log("RAG chat for project:", projectId, "by user:", userId);
+    console.log("RAG chat for project:", projectId, "by user:", userId, "thread:", incomingThreadId);
 
     const lastUserMessage = messages?.filter((m: any) => m.role === "user").pop()?.content || "";
+
+    // --- Conversational memory: resolve thread ---
+    let threadId: string | null = null;
+    let threadSummary: string | null = null;
+    let priorMessages: Array<{ role: string; content: string }> = [];
+
+    if (incomingThreadId) {
+      const { data: t } = await supabaseAdmin
+        .from("conversation_threads")
+        .select("id, user_id, summary, message_count")
+        .eq("id", incomingThreadId)
+        .maybeSingle();
+      if (t && t.user_id === userId) {
+        threadId = t.id;
+        threadSummary = t.summary;
+        // Load last raw messages for short-window context
+        const { data: rows } = await supabaseAdmin
+          .from("thread_messages")
+          .select("role, content, created_at")
+          .eq("thread_id", threadId)
+          .order("created_at", { ascending: false })
+          .limit(MAX_RECENT_MESSAGES);
+        priorMessages = (rows || []).reverse().map((r: any) => ({ role: r.role, content: r.content }));
+      }
+    }
+
+    if (!threadId) {
+      const title = (lastUserMessage || "Nueva conversación").slice(0, 60);
+      const { data: created } = await supabaseAdmin
+        .from("conversation_threads")
+        .insert({ project_id: projectId, user_id: userId, title })
+        .select("id")
+        .single();
+      threadId = created?.id ?? null;
+    }
+
+    // Persist the user message
+    if (threadId && lastUserMessage) {
+      await supabaseAdmin.from("thread_messages").insert({
+        thread_id: threadId,
+        user_id: userId,
+        role: "user",
+        content: lastUserMessage,
+      });
+    }
 
     // Fetch training config and examples
     const [trainingRes, examplesRes] = await Promise.all([
@@ -212,18 +261,34 @@ serve(async (req) => {
       systemPrompt += "\nSigue el estilo de estos ejemplos al responder.";
     }
 
+    // Inject conversational memory: prior summary
+    if (threadSummary) {
+      systemPrompt += `\n\n## RESUMEN DE LA CONVERSACIÓN ANTERIOR:\n${threadSummary}`;
+    }
+
     if (context) {
-      systemPrompt += `\n\n## CONTEXTO (usa esta información para responder):\n${context}`;
+      systemPrompt += `\n\n## CONTEXTO DOCUMENTAL (usa esta información para responder):\n${context}`;
     }
 
     systemPrompt += "\n\nSi la respuesta no está en el contexto, indica amablemente que no tienes esa información.";
+
+    // Build final message array: system + (prior raw window) + current request messages
+    // The client typically sends only the current user turn; we merge prior window from DB.
+    const currentTurn = messages?.length ? messages : [];
+    const seen = new Set(priorMessages.map((m) => `${m.role}|${m.content}`));
+    const dedupedCurrent = currentTurn.filter((m: any) => !seen.has(`${m.role}|${m.content}`));
+    const conversation = [
+      { role: "system", content: systemPrompt },
+      ...priorMessages,
+      ...dedupedCurrent,
+    ];
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model,
-        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        messages: conversation,
         stream: true,
         temperature,
       }),
@@ -245,23 +310,108 @@ serve(async (req) => {
       throw new Error(`AI error: ${aiResponse.status}`);
     }
 
-    // Prepend a sources SSE event, then pipe the AI stream
+    // Prepend thread + sources SSE events, then pipe the AI stream and capture assistant text
     const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const threadEvent = `event: thread\ndata: ${JSON.stringify({ thread_id: threadId })}\n\n`;
     const sourcesEvent = `event: sources\ndata: ${JSON.stringify({ sources })}\n\n`;
     const aiReader = aiResponse.body!.getReader();
+
+    let assistantText = "";
+
     const stream = new ReadableStream({
       async start(controller) {
+        controller.enqueue(encoder.encode(threadEvent));
         controller.enqueue(encoder.encode(sourcesEvent));
         try {
           while (true) {
             const { done, value } = await aiReader.read();
             if (done) break;
             controller.enqueue(value);
+            // Best-effort: extract assistant deltas to persist after stream
+            try {
+              const chunk = decoder.decode(value, { stream: true });
+              for (const rawLine of chunk.split("\n")) {
+                const line = rawLine.trim();
+                if (!line.startsWith("data:")) continue;
+                const payload = line.slice(5).trim();
+                if (!payload || payload === "[DONE]") continue;
+                const parsed = JSON.parse(payload);
+                const delta = parsed?.choices?.[0]?.delta?.content;
+                if (typeof delta === "string") assistantText += delta;
+              }
+            } catch { /* ignore parse errors mid-stream */ }
           }
         } catch (e) {
           console.error("Stream pipe error:", e);
         } finally {
           controller.close();
+
+          // Persist assistant message + maybe summarize (background)
+          if (threadId && assistantText) {
+            (async () => {
+              try {
+                await supabaseAdmin.from("thread_messages").insert({
+                  thread_id: threadId!,
+                  user_id: userId,
+                  role: "assistant",
+                  content: assistantText,
+                });
+
+                // Update message_count
+                const { count } = await supabaseAdmin
+                  .from("thread_messages")
+                  .select("*", { count: "exact", head: true })
+                  .eq("thread_id", threadId!);
+
+                const newCount = count ?? 0;
+                await supabaseAdmin
+                  .from("conversation_threads")
+                  .update({ message_count: newCount })
+                  .eq("id", threadId!);
+
+                // Summarize when crossing the threshold (every SUMMARIZE_AFTER msgs)
+                if (newCount >= SUMMARIZE_AFTER && newCount % SUMMARIZE_AFTER === 0) {
+                  const { data: allMsgs } = await supabaseAdmin
+                    .from("thread_messages")
+                    .select("role, content, created_at")
+                    .eq("thread_id", threadId!)
+                    .order("created_at", { ascending: true });
+
+                  const transcript = (allMsgs || [])
+                    .map((m: any) => `${m.role === "user" ? "Usuario" : "Asistente"}: ${m.content}`)
+                    .join("\n");
+
+                  const sumRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      model: "google/gemini-2.5-flash",
+                      stream: false,
+                      temperature: 0.2,
+                      messages: [
+                        { role: "system", content: "Resume la siguiente conversación en español en 4-6 frases. Conserva entidades, decisiones y datos relevantes. Sé conciso." },
+                        ...(threadSummary ? [{ role: "system", content: `Resumen previo: ${threadSummary}` }] : []),
+                        { role: "user", content: transcript },
+                      ],
+                    }),
+                  });
+                  if (sumRes.ok) {
+                    const sumJson = await sumRes.json();
+                    const summary = sumJson?.choices?.[0]?.message?.content?.trim();
+                    if (summary) {
+                      await supabaseAdmin
+                        .from("conversation_threads")
+                        .update({ summary })
+                        .eq("id", threadId!);
+                    }
+                  }
+                }
+              } catch (e) {
+                console.error("Post-stream persist/summarize failed:", e);
+              }
+            })();
+          }
         }
       },
     });
