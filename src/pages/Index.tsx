@@ -747,8 +747,8 @@ function TimelineStep({ number, title, duration, description, details }: {
   );
 }
 
-function PricingCard({ name, price, period, description, features, highlighted, onCtaClick }: {
-  name: string; price: string; period: string; description: string; features: string[]; highlighted?: boolean; onCtaClick: () => void;
+function PricingCard({ name, price, period, description, features, highlighted, ctaLabel, onCtaClick }: {
+  name: string; price: string; period: string; description: string; features: string[]; highlighted?: boolean; ctaLabel?: string; onCtaClick: () => void;
 }) {
   return (
     <div className={`bg-background p-8 flex flex-col ${highlighted ? 'ring-1 ring-primary bg-primary/5' : ''}`}>
@@ -773,7 +773,7 @@ function PricingCard({ name, price, period, description, features, highlighted, 
         variant={highlighted ? 'default' : 'outline'}
         onClick={onCtaClick}
       >
-        {price === 'Custom' ? 'CONTACTAR VENTAS' : 'EMPEZAR'}
+        {ctaLabel ?? (price === 'Custom' ? 'CONTACTAR VENTAS' : 'EMPEZAR')}
       </Button>
     </div>
   );
