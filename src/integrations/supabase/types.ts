@@ -477,10 +477,14 @@ export type Database = {
       }
       user_subscriptions: {
         Row: {
+          cancel_at_period_end: boolean
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
+          environment: string
           id: string
+          price_id: string | null
+          status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           tier: Database["public"]["Enums"]["subscription_tier"]
@@ -488,10 +492,14 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          environment?: string
           id?: string
+          price_id?: string | null
+          status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           tier?: Database["public"]["Enums"]["subscription_tier"]
@@ -499,10 +507,14 @@ export type Database = {
           user_id: string
         }
         Update: {
+          cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          environment?: string
           id?: string
+          price_id?: string | null
+          status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           tier?: Database["public"]["Enums"]["subscription_tier"]
@@ -523,6 +535,10 @@ export type Database = {
         Returns: Json
       }
       get_user_usage_stats: { Args: { user_uuid: string }; Returns: Json }
+      has_active_paid_subscription: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       match_document_chunks: {
         Args: {
           match_count?: number
@@ -551,6 +567,10 @@ export type Database = {
           id: string
           rank: number
         }[]
+      }
+      tier_from_price_id: {
+        Args: { _price_id: string }
+        Returns: Database["public"]["Enums"]["subscription_tier"]
       }
     }
     Enums: {
