@@ -197,6 +197,7 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
 
   const handleClearChat = () => {
     setMessages([]);
+    setThreadId(null);
   };
 
   const suggestedQuestions = [
