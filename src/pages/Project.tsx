@@ -105,17 +105,16 @@ export default function ProjectPage() {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!user || !id) return;
 
-    const pdfFiles = acceptedFiles.filter(f => f.type === 'application/pdf');
-    if (pdfFiles.length === 0) {
-      toast.error('Solo se permiten archivos PDF');
+    if (acceptedFiles.length === 0) {
+      toast.error('Formato no soportado');
       return;
     }
 
     setUploading(true);
     setUploadProgress(0);
 
-    for (let i = 0; i < pdfFiles.length; i++) {
-      const file = pdfFiles[i];
+    for (let i = 0; i < acceptedFiles.length; i++) {
+      const file = acceptedFiles[i];
       try {
         const filePath = `${user.id}/${id}/${Date.now()}_${file.name}`;
         const { error: uploadError } = await supabase.storage.from('documents').upload(filePath, file);
@@ -142,20 +141,35 @@ export default function ProjectPage() {
 
         if (processError) console.error('Error triggering processing:', processError);
 
-        setUploadProgress(((i + 1) / pdfFiles.length) * 100);
+        setUploadProgress(((i + 1) / acceptedFiles.length) * 100);
       } catch (error: any) {
         toast.error(`Error al subir ${file.name}`);
       }
     }
 
-    toast.success(`${pdfFiles.length} documento(s) subido(s). Procesando...`);
+    toast.success(`${acceptedFiles.length} documento(s) subido(s). Procesando...`);
     setUploading(false);
     fetchProjectData();
   }, [user, id]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: { 'application/pdf': ['.pdf'] },
+    accept: {
+      'application/pdf': ['.pdf'],
+      'text/plain': ['.txt', '.log'],
+      'text/markdown': ['.md', '.markdown', '.mdx'],
+      'application/json': ['.json'],
+      'application/x-ndjson': ['.jsonl', '.ndjson'],
+      'text/csv': ['.csv'],
+      'text/tab-separated-values': ['.tsv'],
+      'text/html': ['.html', '.htm'],
+      'application/xml': ['.xml'],
+      'text/xml': ['.xml'],
+      'application/x-yaml': ['.yaml', '.yml'],
+      'text/x-rst': ['.rst'],
+      'application/rtf': ['.rtf'],
+      'application/toml': ['.toml'],
+    },
     disabled: uploading,
   });
 
@@ -324,8 +338,8 @@ export default function ProjectPage() {
                     <p className="font-medium text-primary">Suelta los archivos aquí</p>
                   ) : (
                     <>
-                      <p className="font-medium mb-1">Arrastra tus PDFs aquí</p>
-                      <p className="text-sm text-muted-foreground">o haz clic para seleccionar archivos</p>
+                      <p className="font-medium mb-1">Arrastra tus documentos aquí</p>
+                      <p className="text-sm text-muted-foreground">PDF, TXT, MD, JSON, CSV, HTML, XML, YAML y más</p>
                     </>
                   )}
                 </div>
