@@ -355,8 +355,92 @@ console.log(data.answer);`}
         </div>
       </section>
 
+      {/* MCP Section — Servidor MCP por proyecto */}
+      <section id="mcp" className="py-24 md:py-32 border-t border-border">
+        <div className="container mx-auto px-6">
+          <div className="max-w-5xl">
+            <p className="font-mono text-xs tracking-widest text-primary mb-4">MODEL CONTEXT PROTOCOL</p>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 leading-[0.95] font-display">
+              Cada proyecto incluye un <span className="text-gradient italic">servidor MCP</span> nativo.
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mb-16 leading-relaxed">
+              Conecta tu base de conocimiento directamente a Claude Desktop, Cursor, Windsurf o
+              cualquier cliente compatible con MCP. Sin pegamento, sin proxys: un endpoint
+              JSON-RPC 2.0 autenticado por API key, listo para que tus agentes razonen sobre tus datos.
+            </p>
+
+            <div className="grid md:grid-cols-3 gap-px bg-border mb-16">
+              <McpToolCard
+                icon={<Search className="h-5 w-5" />}
+                name="search_knowledge"
+                description="Búsqueda híbrida (semántica + full-text) sobre los chunks del proyecto. Devuelve fragmentos con score y metadatos."
+              />
+              <McpToolCard
+                icon={<Brain className="h-5 w-5" />}
+                name="ask"
+                description="Respuesta sintetizada por el pipeline RAG con citas numeradas. Ideal para flujos conversacionales del agente."
+              />
+              <McpToolCard
+                icon={<FileText className="h-5 w-5" />}
+                name="list_documents"
+                description="Inventario completo de documentos indexados: nombre, tipo, fecha y número de chunks vectorizados."
+              />
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-12 items-start">
+              <div>
+                <p className="font-mono text-xs tracking-widest text-muted-foreground mb-4">PARA QUÉ SIRVE</p>
+                <ul className="space-y-4">
+                  {[
+                    { t: 'Claude / Cursor con tu conocimiento', d: 'Tu equipo escribe código o redacta en Claude y el agente consulta tus manuales, tickets o políticas en tiempo real.' },
+                    { t: 'Agentes autónomos con memoria privada', d: 'Tu agente de soporte, ventas u operaciones razona sobre documentos internos sin exponerlos a terceros.' },
+                    { t: 'Un único protocolo, cero integraciones', d: 'MCP es el estándar abierto que ya hablan los LLMs líderes. Activa una vez, úsalo desde cualquier cliente.' },
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="h-3 w-3" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{item.t}</p>
+                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{item.d}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="bg-card border border-border overflow-hidden shadow-2xl">
+                <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 border-b border-border">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-destructive/60" />
+                    <div className="w-3 h-3 rounded-full bg-warning/60" />
+                    <div className="w-3 h-3 rounded-full bg-primary/60" />
+                  </div>
+                  <span className="text-xs text-muted-foreground ml-2 font-mono">claude_desktop_config.json</span>
+                </div>
+                <pre className="p-6 text-xs overflow-x-auto">
+                  <code className="text-muted-foreground font-mono">
+{`{
+  "mcpServers": {
+    "ragify": {
+      "url": "https://api.ragify.dev/mcp/{project_id}",
+      "headers": {
+        "Authorization": "Bearer rag_xxxxxxxxxxxx"
+      }
+    }
+  }
+}`}
+                  </code>
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" className="py-24 md:py-32 border-t border-border">
+
         <div className="container mx-auto px-6">
           <p className="font-mono text-xs tracking-widest text-muted-foreground mb-4">Precios</p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 max-w-2xl">
@@ -541,13 +625,15 @@ console.log(data.answer);`}
 function MarqueeTicker() {
   const items = [
     'RAG COMO SERVICIO',
+    'SERVIDOR MCP NATIVO',
+    'CLAUDE · CURSOR · WINDSURF',
     'SIN ML REQUERIDO',
     'LISTO PARA PRODUCCIÓN',
     'ENCRIPTACIÓN AES-256',
     'EMBEDDINGS REALES',
     '< 100ms LATENCIA',
-    'API REST',
-    'BÚSQUEDA SEMÁNTICA',
+    'API REST + JSON-RPC',
+    'BÚSQUEDA HÍBRIDA',
   ];
 
   return (
