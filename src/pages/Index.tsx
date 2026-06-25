@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import logoWhite from '@/assets/logo-white.png';
+import promoVideo from '@/assets/ragify-promo.mp4.asset.json';
 
 export default function Index() {
   const navigate = useNavigate();
