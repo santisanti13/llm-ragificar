@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   ArrowRight, Loader2, Shield, Code, FileText, Bot, Terminal, Check,
-  ChevronRight, Sparkles, Lock, Upload, Brain, Rocket,
+  ChevronRight, Sparkles, Lock, Upload, Brain, Rocket, Plug, Network, Search,
   Menu, X, Play, Zap, Mail, Twitter, Github, Linkedin
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
@@ -34,6 +34,7 @@ export default function Index() {
   const navLinks = [
     { label: 'BENEFICIOS', href: '#benefits' },
     { label: 'CÓMO FUNCIONA', href: '#how-it-works' },
+    { label: 'MCP', href: '#mcp' },
     { label: 'PRECIOS', href: '#pricing' },
     { label: 'FAQ', href: '#faq' },
   ];
@@ -110,22 +111,21 @@ export default function Index() {
           {/* Small badge */}
           <div className="mb-8">
             <span className="inline-block font-mono text-xs tracking-widest px-4 py-2 rounded-full border border-primary/40 text-primary bg-primary/5">
-              RAG AS A SERVICE
+              RAG + MCP AS A SERVICE
             </span>
           </div>
 
           {/* Giant headline */}
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-extrabold leading-[0.9] tracking-tight mb-8">
-            RAGify — <span className="text-gradient">API de RAG</span>
-            <br />
-            <span className="text-gradient">inteligente</span> para documentos.
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-semibold leading-[0.95] tracking-tight mb-8 font-display">
+            Convierte tus documentos en una <span className="text-gradient italic">API inteligente</span> — y en un <span className="text-gradient italic">servidor MCP</span> listo para tus agentes.
           </h1>
 
 
           {/* Subtitle - monospaced */}
-          <p className="font-mono text-sm md:text-base text-muted-foreground max-w-xl mb-10 leading-relaxed">
-            Sube documentos, entrena con tus datos y despliega un endpoint RAG
-            listo para producción en minutos. Sin ML. Sin DevOps.
+          <p className="font-mono text-sm md:text-base text-muted-foreground max-w-2xl mb-10 leading-relaxed">
+            RAGify ingiere tus PDFs, JSON, Markdown, HTML y CSV, los vectoriza y
+            los expone como un endpoint REST de RAG y como un servidor MCP nativo.
+            Tu conocimiento, accesible desde tu app, desde Claude, Cursor o cualquier agente — en minutos.
           </p>
 
           {/* CTA */}
