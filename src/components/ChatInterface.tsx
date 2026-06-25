@@ -136,6 +136,10 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
 
           try {
             const parsed = JSON.parse(jsonStr);
+            if (parsed.thread_id) {
+              setThreadId(parsed.thread_id);
+              continue;
+            }
             if (parsed.sources && Array.isArray(parsed.sources)) {
               const sources = parsed.sources as Source[];
               setMessages(prev =>
