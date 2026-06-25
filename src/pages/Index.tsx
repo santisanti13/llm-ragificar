@@ -731,3 +731,16 @@ function PricingCard({ name, price, period, description, features, highlighted, 
     </div>
   );
 }
+
+function McpToolCard({ icon, name, description }: { icon: React.ReactNode; name: string; description: string }) {
+  return (
+    <div className="bg-background p-8 group hover:bg-primary/5 transition-colors duration-300">
+      <div className="w-10 h-10 rounded-md bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+        {icon}
+      </div>
+      <code className="font-mono text-sm text-primary block mb-3">{name}</code>
+      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
