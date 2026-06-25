@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     if (!returnUrl) throw new Error("Missing returnUrl");
     if (environment !== "sandbox" && environment !== "live") throw new Error("Invalid environment");
 
-    // Resolve user from auth header (optional — checkout can be anonymous)
+    // Login required — anonymous checkouts cannot be linked to a user/tier
     let userId: string | undefined;
     let userEmail: string | undefined;
     const authHeader = req.headers.get("Authorization");
@@ -79,6 +79,12 @@ Deno.serve(async (req) => {
         userEmail = user.email ?? undefined;
       }
     }
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: "Auth required", message: "Inicia sesión para suscribirte." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const stripe = createStripeClient(environment);
 
@@ -87,21 +93,37 @@ Deno.serve(async (req) => {
     const stripePrice = prices.data[0];
     const isRecurring = stripePrice.type === "recurring";
 
-    const customerId = (userEmail || userId)
-      ? await resolveOrCreateCustomer(stripe, { email: userEmail, userId })
-      : undefined;
+    const customerId = await resolveOrCreateCustomer(stripe, { email: userEmail, userId });
+
+    // Prevent duplicate active paid subscriptions
+    if (isRecurring) {
+      const existing = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "active",
+        limit: 5,
+      });
+      if (existing.data.length > 0) {
+        return new Response(
+          JSON.stringify({
+            error: "Already subscribed",
+            message: "Ya tienes una suscripción activa. Gestiónala desde el portal de cliente.",
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    }
 
     const session = await stripe.checkout.sessions.create({
       line_items: [{ price: stripePrice.id, quantity: quantity || 1 }],
       mode: isRecurring ? "subscription" : "payment",
       ui_mode: "embedded_page",
       return_url: returnUrl,
-      ...(customerId && { customer: customerId }),
-      ...(userId && {
-        metadata: { userId, priceId },
-        ...(isRecurring && { subscription_data: { metadata: { userId, priceId } } }),
-      }),
-    });
+      customer: customerId,
+      metadata: { userId, priceId },
+      ...(isRecurring && { subscription_data: { metadata: { userId, priceId } } }),
+      managed_payments: { enabled: true },
+    } as any);
+
 
     return new Response(JSON.stringify({ clientSecret: session.client_secret }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
