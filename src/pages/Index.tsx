@@ -12,12 +12,27 @@ import {
 import logo from '@/assets/logo.png';
 import logoWhite from '@/assets/logo-white.png';
 import LandingDemo from '@/components/LandingDemo';
+import { useStripeCheckout } from '@/hooks/useStripeCheckout';
 
 
 export default function Index() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const { user, loading } = useAuth();
+  const { openCheckout, checkoutElement } = useStripeCheckout();
+
+  const handleSubscribe = (plan: 'starter' | 'pro') => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    const priceId = `${plan}_${billingPeriod === 'monthly' ? 'monthly' : 'yearly'}`;
+    openCheckout({
+      priceId,
+      planLabel: `${plan === 'starter' ? 'Starter' : 'Pro'} · ${billingPeriod === 'monthly' ? 'Mensual' : 'Anual'}`,
+    });
+  };
 
   useEffect(() => {
     if (!loading && user) {
@@ -453,33 +468,55 @@ console.log(data.answer);`}
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 max-w-2xl">
             Empieza gratis. Escala cuando quieras.
           </h2>
-          <p className="text-muted-foreground mb-16 max-w-xl">Sin sorpresas. Paga solo por lo que usas.</p>
+          <p className="text-muted-foreground mb-8 max-w-xl">Sin sorpresas. Paga solo por lo que usas.</p>
+
+          {/* Billing toggle */}
+          <div className="inline-flex items-center gap-1 p-1 border border-border mb-12 rounded-none bg-background">
+            <button
+              type="button"
+              onClick={() => setBillingPeriod('monthly')}
+              className={`px-4 py-2 font-mono text-xs tracking-wider transition-colors ${billingPeriod === 'monthly' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              MENSUAL
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingPeriod('yearly')}
+              className={`px-4 py-2 font-mono text-xs tracking-wider transition-colors flex items-center gap-2 ${billingPeriod === 'yearly' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              ANUAL
+              <span className="text-[10px] px-1.5 py-0.5 bg-primary/20 text-primary rounded">-20%</span>
+            </button>
+          </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-border">
             <PricingCard
               name="Free"
-              price="$0"
+              price="0€"
               period="/mes"
               description="Para pruebas y proyectos personales"
-              features={['1 proyecto', '50 consultas/mes', '25MB almacenamiento', 'Docs de API', 'Soporte comunidad']}
+              features={['1 proyecto', '100 consultas/mes', '5MB documentos', 'Docs de API', 'Soporte comunidad']}
+              ctaLabel="EMPEZAR"
               onCtaClick={() => navigate('/auth')}
             />
             <PricingCard
               name="Starter"
-              price="$15"
-              period="/mes"
+              price={billingPeriod === 'monthly' ? '19€' : '15,20€'}
+              period={billingPeriod === 'monthly' ? '/mes' : '/mes (anual)'}
               description="Para proyectos en crecimiento"
-              features={['3 proyectos', '1K consultas/mes', '200MB almacenamiento', 'Analíticas básicas', 'Soporte por email']}
-              onCtaClick={() => navigate('/auth')}
+              features={['5 proyectos', '10K consultas/mes', '100MB documentos', 'Analíticas básicas', 'Soporte por email']}
+              ctaLabel="SUSCRIBIRSE"
+              onCtaClick={() => handleSubscribe('starter')}
             />
             <PricingCard
               name="Pro"
-              price="$49"
-              period="/mes"
+              price={billingPeriod === 'monthly' ? '79€' : '63,20€'}
+              period={billingPeriod === 'monthly' ? '/mes' : '/mes (anual)'}
               description="Para startups y equipos"
-              features={['10 proyectos', '10K consultas/mes', '1GB almacenamiento', 'Analíticas avanzadas', 'Soporte prioritario', 'Webhooks']}
+              features={['50 proyectos', '100K consultas/mes', '1GB documentos', 'Analíticas avanzadas', 'Soporte prioritario', 'Webhooks']}
               highlighted
-              onCtaClick={() => navigate('/auth')}
+              ctaLabel="SUSCRIBIRSE"
+              onCtaClick={() => handleSubscribe('pro')}
             />
             <PricingCard
               name="Enterprise"
@@ -487,11 +524,14 @@ console.log(data.answer);`}
               period=""
               description="Para grandes organizaciones"
               features={['Proyectos ilimitados', 'Consultas ilimitadas', 'Almacenamiento ilimitado', 'SSO / SAML', 'Soporte dedicado', 'SLA 99.99%']}
-              onCtaClick={() => navigate('/auth')}
+              ctaLabel="CONTACTAR VENTAS"
+              onCtaClick={() => window.location.href = 'mailto:hello@ragify.app?subject=Plan Enterprise'}
             />
           </div>
         </div>
       </section>
+
+      {checkoutElement}
 
       {/* FAQ - Numbered like TinyFish */}
       <section id="faq" className="py-24 md:py-32 border-t border-border">
@@ -707,8 +747,8 @@ function TimelineStep({ number, title, duration, description, details }: {
   );
 }
 
-function PricingCard({ name, price, period, description, features, highlighted, onCtaClick }: {
-  name: string; price: string; period: string; description: string; features: string[]; highlighted?: boolean; onCtaClick: () => void;
+function PricingCard({ name, price, period, description, features, highlighted, ctaLabel, onCtaClick }: {
+  name: string; price: string; period: string; description: string; features: string[]; highlighted?: boolean; ctaLabel?: string; onCtaClick: () => void;
 }) {
   return (
     <div className={`bg-background p-8 flex flex-col ${highlighted ? 'ring-1 ring-primary bg-primary/5' : ''}`}>
@@ -733,7 +773,7 @@ function PricingCard({ name, price, period, description, features, highlighted, 
         variant={highlighted ? 'default' : 'outline'}
         onClick={onCtaClick}
       >
-        {price === 'Custom' ? 'CONTACTAR VENTAS' : 'EMPEZAR'}
+        {ctaLabel ?? (price === 'Custom' ? 'CONTACTAR VENTAS' : 'EMPEZAR')}
       </Button>
     </div>
   );

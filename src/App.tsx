@@ -13,6 +13,7 @@ import Docs from "./pages/Docs";
 import Analytics from "./pages/Analytics";
 import ChunkingGuide from "./pages/ChunkingGuide";
 import NotFound from "./pages/NotFound";
+import CheckoutReturn from "./pages/CheckoutReturn";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/docs" element={<Docs />} />
               <Route path="/analytics" element={<Analytics />} />
               <Route path="/blog/chunking-strategies-guide" element={<ChunkingGuide />} />
+              <Route path="/checkout/return" element={<CheckoutReturn />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
