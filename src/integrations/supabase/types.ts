@@ -141,6 +141,33 @@ export type Database = {
           },
         ]
       }
+      demo_usage: {
+        Row: {
+          count: number
+          created_at: string
+          day: string
+          id: string
+          ip_hash: string
+          updated_at: string
+        }
+        Insert: {
+          count?: number
+          created_at?: string
+          day?: string
+          id?: string
+          ip_hash: string
+          updated_at?: string
+        }
+        Update: {
+          count?: number
+          created_at?: string
+          day?: string
+          id?: string
+          ip_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       document_chunks: {
         Row: {
           chunk_index: number

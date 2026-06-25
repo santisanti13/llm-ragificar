@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
 import logoWhite from '@/assets/logo-white.png';
+import LandingDemo from '@/components/LandingDemo';
 
 
 export default function Index() {
@@ -34,6 +35,7 @@ export default function Index() {
 
   const navLinks = [
     { label: 'BENEFICIOS', href: '#benefits' },
+    { label: 'DEMO', href: '#demo' },
     { label: 'CÓMO FUNCIONA', href: '#how-it-works' },
     { label: 'MCP', href: '#mcp' },
     { label: 'PRECIOS', href: '#pricing' },
@@ -259,6 +261,9 @@ export default function Index() {
           </div>
         </div>
       </section>
+
+      {/* Interactive Demo */}
+      <LandingDemo />
 
       {/* How It Works - Timeline style */}
       <section id="how-it-works" className="py-24 md:py-32 border-t border-border">
