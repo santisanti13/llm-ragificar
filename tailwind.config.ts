@@ -14,8 +14,9 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Outfit', 'system-ui', 'sans-serif'],
-        display: ['Outfit', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['Lora', 'Georgia', 'serif'],
+        serif: ['Lora', 'Georgia', 'serif'],
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
