@@ -133,7 +133,7 @@ serve(async (req) => {
     const training = trainingRes.data;
     const examples = examplesRes.data || [];
 
-    const temperature = training?.temperature ?? 0.7;
+    const temperature = training?.temperature ?? 0.2; // Fix 1: lower default for grounded answers
     const matchCount = training?.match_count ?? 8;
     const similarityThreshold = training?.similarity_threshold ?? 0.3;
     const model = training?.model || "google/gemini-2.5-flash";
@@ -220,7 +220,8 @@ serve(async (req) => {
 
       if (merged.size > 0) {
         selectedChunks = [...merged.values()].sort((a, b) => b.score - a.score).slice(0, matchCount);
-        context = selectedChunks.map((c) => c.content).join("\n\n");
+        // Fix 3: number chunks so the model can cite [n]
+        context = selectedChunks.map((c, i) => `[${i + 1}] ${c.content}`).join("\n\n");
         chunksUsed = selectedChunks.length;
         searchSource = "hybrid";
       }
@@ -248,10 +249,33 @@ serve(async (req) => {
 
     console.log(`Search: ${searchSource}, chunks=${chunksUsed}, sources=${sources.length}`);
 
-    // Build system prompt
+    // Fix 4: short-circuit when no relevant context was retrieved
+    if (!context || chunksUsed === 0) {
+      const fallback = "No encontré información relevante en la documentación para responder a esa pregunta.";
+      console.log("[rag-chat] Empty context — short-circuiting LLM call");
+
+      // Persist assistant fallback
+      if (threadId) {
+        try {
+          await supabaseAdmin.from("thread_messages").insert({
+            thread_id: threadId, user_id: userId, role: "assistant", content: fallback,
+          });
+        } catch (e) { console.error("persist fallback failed", e); }
+      }
+
+      const encoder = new TextEncoder();
+      const threadEvent = `event: thread\ndata: ${JSON.stringify({ thread_id: threadId })}\n\n`;
+      const sourcesEvent = `event: sources\ndata: ${JSON.stringify({ sources: [] })}\n\n`;
+      const fakeDelta = `data: ${JSON.stringify({ choices: [{ delta: { content: fallback } }] })}\n\n`;
+      const done = `data: [DONE]\n\n`;
+      const body = encoder.encode(threadEvent + sourcesEvent + fakeDelta + done);
+      return new Response(body, { headers: { ...corsHeaders, "Content-Type": "text/event-stream" } });
+    }
+
+    // Build system prompt (Fix 2: strong grounding default)
     let systemPrompt =
       training?.system_prompt?.trim() ||
-      "Eres un asistente experto que responde preguntas basándote en el contexto proporcionado. Responde en español de forma clara y precisa.";
+      "Eres un asistente experto que responde EXCLUSIVAMENTE con información presente en el CONTEXTO DOCUMENTAL proporcionado. Reglas estrictas: (1) Si la información no aparece de forma explícita en el contexto, responde únicamente: 'No tengo esa información en la documentación.' (2) No infieras, no completes con conocimiento general, no inventes datos, cifras ni nombres. (3) Cita las fuentes usando los números de los fragmentos entre corchetes, por ejemplo [1], [2], cuando uses información de un fragmento. (4) Responde en español de forma clara y precisa.";
 
     if (examples.length > 0) {
       systemPrompt += "\n\n## Ejemplos de cómo debes responder:\n";
@@ -261,16 +285,34 @@ serve(async (req) => {
       systemPrompt += "\nSigue el estilo de estos ejemplos al responder.";
     }
 
-    // Inject conversational memory: prior summary
     if (threadSummary) {
       systemPrompt += `\n\n## RESUMEN DE LA CONVERSACIÓN ANTERIOR:\n${threadSummary}`;
     }
 
-    if (context) {
-      systemPrompt += `\n\n## CONTEXTO DOCUMENTAL (usa esta información para responder):\n${context}`;
+    // Fix 5: token budget guard — trim lowest-scored chunks if assembled prompt is too big
+    const MODEL_CTX_TOKENS = 128000;
+    const BUDGET_TOKENS = Math.floor(MODEL_CTX_TOKENS * 0.7);
+    const estimateTokens = (s: string) => Math.ceil(s.length / 4);
+    const buildContext = (chunks: typeof selectedChunks) =>
+      chunks.map((c, i) => `[${i + 1}] ${c.content}`).join("\n\n");
+    const historyText = priorMessages.map((m) => m.content).join("\n") +
+      (messages || []).map((m: any) => m.content).join("\n");
+    const baseTokens = estimateTokens(systemPrompt) + estimateTokens(historyText);
+    let trimmed = 0;
+    while (
+      selectedChunks.length > 1 &&
+      baseTokens + estimateTokens(buildContext(selectedChunks)) > BUDGET_TOKENS
+    ) {
+      selectedChunks.pop(); // lowest-scored (already sorted desc)
+      trimmed++;
+    }
+    if (trimmed > 0) {
+      console.log(`[rag-chat] Token budget: trimmed ${trimmed} chunks to fit ${BUDGET_TOKENS} tokens`);
+      context = buildContext(selectedChunks);
+      chunksUsed = selectedChunks.length;
     }
 
-    systemPrompt += "\n\nSi la respuesta no está en el contexto, indica amablemente que no tienes esa información.";
+    systemPrompt += `\n\n## CONTEXTO DOCUMENTAL (usa esta información para responder):\n${context}`;
 
     // Build final message array: system + (prior raw window) + current request messages
     // The client typically sends only the current user turn; we merge prior window from DB.
