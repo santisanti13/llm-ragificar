@@ -265,7 +265,7 @@ export default function ProjectPage() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="documents" className="space-y-6">
-          <TabsList className="grid w-full max-w-2xl grid-cols-5">
+          <TabsList className="sticky top-[73px] z-40 grid w-full max-w-2xl grid-cols-5">
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Docs ({documents.length})</span>
