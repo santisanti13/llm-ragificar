@@ -223,7 +223,7 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
               className="text-muted-foreground hover:text-foreground"
             >
               <RotateCcw className="h-4 w-4 mr-1" />
-              Limpiar
+              Nueva conversación
             </Button>
           )}
         </div>
