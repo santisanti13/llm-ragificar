@@ -137,6 +137,21 @@ export default function Index() {
           >
             EMPEZAR GRATIS →
           </Button>
+
+          {/* Promo video */}
+          <div className="mt-16 md:mt-20 relative rounded-lg overflow-hidden border border-border bg-card shadow-2xl">
+            <video
+              src={promoVideo.url}
+              className="w-full h-auto block"
+              controls
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              aria-label="Vídeo promocional de RAGify"
+            />
+          </div>
         </div>
       </section>
 
