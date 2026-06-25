@@ -274,15 +274,28 @@ serve(async (req) => {
 
     if (downloadError) throw new Error(`Failed to download: ${downloadError.message}`);
 
-    // Determine if PDF or text
-    const isPdf = doc.name.toLowerCase().endsWith(".pdf");
+    // Determine file type from extension
+    const lowerName = doc.name.toLowerCase();
+    const ext = lowerName.includes(".") ? lowerName.split(".").pop() : "";
+    const TEXT_EXTS = new Set([
+      "txt", "md", "markdown", "mdx", "rst",
+      "json", "jsonl", "ndjson",
+      "csv", "tsv",
+      "html", "htm", "xml",
+      "yaml", "yml", "toml", "ini", "cfg", "conf",
+      "log", "rtf",
+      // common code / config formats that work as plain text RAG context
+      "js", "ts", "tsx", "jsx", "py", "java", "go", "rb", "php", "cs",
+      "sql", "sh", "bash",
+    ]);
+
     let text: string;
 
-    if (isPdf) {
+    if (ext === "pdf") {
       console.log("Extracting text from PDF using Gemini...");
       const arrayBuffer = await fileData.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
-      
+
       // Convert to base64
       let binary = "";
       const chunkSizeB64 = 8192;
@@ -291,11 +304,26 @@ serve(async (req) => {
         binary += String.fromCharCode(...chunk);
       }
       const pdfBase64 = btoa(binary);
-      
+
       text = await extractTextFromPdf(pdfBase64, LOVABLE_API_KEY);
       console.log(`Extracted ${text.length} chars from PDF`);
-    } else {
+    } else if (ext && TEXT_EXTS.has(ext)) {
       text = await fileData.text();
+      // Pretty-print JSON for better chunking
+      if (ext === "json") {
+        try {
+          text = JSON.stringify(JSON.parse(text), null, 2);
+        } catch {
+          // leave as-is if not valid JSON
+        }
+      }
+    } else {
+      // Fallback: attempt to read as plain text
+      try {
+        text = await fileData.text();
+      } catch {
+        throw new Error(`Unsupported file format: .${ext}`);
+      }
     }
 
     if (!text || text.trim().length < 10) {
