@@ -485,7 +485,7 @@ console.log(data.answer);`}
               className={`px-4 py-2 font-mono text-xs tracking-wider transition-colors flex items-center gap-2 ${billingPeriod === 'yearly' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
             >
               ANUAL
-              <span className="text-[10px] px-1.5 py-0.5 bg-primary/20 text-primary rounded">-20%</span>
+              <span className="text-[10px] px-1.5 py-0.5 bg-primary/20 text-primary rounded">-15%</span>
             </button>
           </div>
 
@@ -501,7 +501,7 @@ console.log(data.answer);`}
             />
             <PricingCard
               name="Starter"
-              price={billingPeriod === 'monthly' ? '19€' : '15,20€'}
+              price={billingPeriod === 'monthly' ? '19€' : '16,15€'}
               period={billingPeriod === 'monthly' ? '/mes' : '/mes (anual)'}
               description="Para proyectos en crecimiento"
               features={['5 proyectos', '10K consultas/mes', '100MB documentos', 'Analíticas básicas', 'Soporte por email']}
@@ -510,7 +510,7 @@ console.log(data.answer);`}
             />
             <PricingCard
               name="Pro"
-              price={billingPeriod === 'monthly' ? '79€' : '63,20€'}
+              price={billingPeriod === 'monthly' ? '79€' : '67,15€'}
               period={billingPeriod === 'monthly' ? '/mes' : '/mes (anual)'}
               description="Para startups y equipos"
               features={['50 proyectos', '100K consultas/mes', '1GB documentos', 'Analíticas avanzadas', 'Soporte prioritario', 'Webhooks']}
