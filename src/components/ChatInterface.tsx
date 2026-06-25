@@ -87,6 +87,7 @@ export function ChatInterface({ projectId }: ChatInterfaceProps) {
         },
         body: JSON.stringify({
           projectId,
+          threadId,
           messages: updatedMessages.map(m => ({ role: m.role, content: m.content })),
         }),
       });
