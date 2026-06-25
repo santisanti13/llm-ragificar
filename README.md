@@ -135,13 +135,6 @@ Honest engineering notes:
 - [ ] Query embedding cache to avoid re-embedding repeated queries
 - [ ] **MCP server wrapper — expose any RAGify knowledge base as an MCP tool for Claude**
 
----
-
-## Author
-
-Built by **Santi** — SaaS builder, EdTech & GovTech.
-[santiagojimenezvalero.com](https://www.santiagojimenezvalero.com) · [LinkedIn](https://www.linkedin.com/in/santijiménezvalero)
----
 
 ## Author
 
