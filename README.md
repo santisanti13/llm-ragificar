@@ -21,16 +21,16 @@ Today, companies like Cohere, Pinecone, and LlamaIndex sell this at enterprise s
 RAGify turns your documents into a private, queryable API:
 
 1. **Upload documents** — PDFs, text files, web content
-2. **RAGify indexes them** — chunks, embeds, stores in a vector database
-3. **Query in natural language** — RAGify retrieves the most relevant context and generates a grounded answer
+2. **RAGify indexes them** — recursive sentence-aware chunking, embeds, stores in pgvector
+3. **Query in natural language** — hybrid retrieval (full-text + semantic) surfaces the most relevant context
 4. **Expose as API** — connect the knowledge base to any tool, chatbot, or workflow
 
 ```
-Documents → Chunking → Embedding → Vector DB
+Documents → Chunking → Embedding → Vector DB (pgvector + HNSW)
                                         │
-User query → Embedding → Similarity search → Context retrieval
-                                                      │
-                                              LLM + Context → Answer
+User query → Embedding → Hybrid search → Context retrieval
+              + Full-text (ES/EN)              │
+                                       LLM + Context → Answer
 ```
 
 ---
@@ -41,17 +41,19 @@ User query → Embedding → Similarity search → Context retrieval
 User uploads document
         │
         ▼
-   RAGify ingestion pipeline
+   RAGify ingestion pipeline (Supabase Edge Function)
    ├── Text extraction
-   ├── Chunking (fixed-size + overlap)
-   ├── Embedding (vector representation)
-   └── Storage (vector database)
+   ├── Recursive chunking (paragraph → sentence → word)
+   │   word-boundary overlap, no mid-word cuts
+   ├── Embedding (Gemini, 768-dim, via AI Gateway)
+   │   graceful fallback to full-text if gateway is down
+   └── Storage (pgvector, HNSW index, cosine similarity)
         │
         ▼
    Query interface
    ├── Query embedding
-   ├── Similarity search (top-k chunks)
-   ├── Context assembly
+   ├── Hybrid search: semantic (HNSW) + full-text (ES/EN)
+   ├── Result fusion
    └── LLM generation (grounded answer)
         │
         ▼
@@ -67,7 +69,42 @@ User uploads document
 | Frontend | React + TypeScript + Lovable |
 | UI | shadcn/ui + Tailwind CSS |
 | Backend | Supabase (PostgreSQL + Edge Functions) |
+| Vector store | pgvector with HNSW index (cosine) |
+| Embeddings | Gemini `gemini-embedding-001` (768-dim) via AI Gateway |
+| Search | Hybrid — semantic + full-text (Spanish & English) |
 | Deployment | Lovable |
+
+---
+
+## Technical highlights
+
+What's actually under the hood — verified, not aspirational:
+
+### Recursive sentence-aware chunking
+Documents are split hierarchically: paragraph → sentence → word, with overlap snapped to word boundaries so chunks never break mid-word. The sentence regex handles Spanish punctuation (`¡¿`) and accented capitals. Chunk size and overlap are configurable per project.
+
+### Hybrid retrieval
+Every query runs **two** searches in parallel and fuses the results:
+- **Semantic search** over pgvector using an HNSW index (`m=16, ef_construction=64`) with cosine similarity
+- **Full-text search** with separate Spanish and English configurations (GIN indexes)
+
+This means queries match both on meaning (semantic) and on exact terms (full-text) — more robust than either alone.
+
+### Resilient embeddings
+The embedding model is called through the Lovable AI Gateway with explicit error handling:
+- **429 (rate limit)** → backoff and retry
+- **402 (out of credits)** → continues with `embedding=null`, degrading gracefully
+- **5xx (gateway error)** → falls back to full-text search
+
+If the embedding service goes down, RAGify keeps answering with full-text instead of failing.
+
+### Row-level multi-tenancy
+Data isolation is enforced at the database level, not just in application code:
+- Every chunk carries a `user_id` (NOT NULL, FK to auth users, cascade delete)
+- A **BEFORE INSERT/UPDATE trigger** forces `user_id` to match the parent document's owner — a client cannot forge ownership even if it tries to inject a fake `user_id`
+- RLS policies enforce `user_id = auth.uid()` on every operation (select/insert/update/delete)
+
+A query from user A can only ever return user A's chunks.
 
 ---
 
@@ -77,31 +114,33 @@ When RAGify was built, the dominant approach to "make an AI know your stuff" was
 
 The insight was product, not research: **most people don't need a smarter model, they need their model to know their data.** RAGify was a product bet on that insight.
 
-The market validated it. Every major AI platform now offers some form of RAG or "knowledge base" feature. RAGify was an early, solo, no-code implementation of the same pattern.
+The market validated it. Every major AI platform now offers some form of RAG or "knowledge base" feature. RAGify was an early, solo implementation of the same pattern — and one that holds up technically: hybrid search, HNSW indexing, and row-level tenant isolation are the same primitives the mature tools use.
 
 ---
 
-## Limitations (honest assessment)
+## Known tradeoffs
 
-RAGify was built fast, with Lovable, as a proof of concept. What it lacks:
+Honest engineering notes:
 
-- Production-grade chunking strategies (semantic chunking, hierarchical indexing)
-- Hybrid search (dense + sparse retrieval / BM25)
-- Reranking
-- Evaluation pipeline (how do you know your RAG is good?)
-- Multi-tenancy at scale
-
-These are the problems the current generation of RAG tooling (LlamaIndex, Langchain, Cohere Embed) has spent years solving. RAGify was never meant to compete with them — it was meant to prove the concept and ship something real.
+- **No re-ranking layer yet.** After hybrid fusion, results aren't re-ranked by a cross-encoder (Cohere/Voyage). For the current data scale this isn't necessary, but it's the next quality lever.
+- **Embedding dimension override.** The 768-dim Matryoshka truncation relies on gateway behavior; pinned and documented in code as a known dependency.
+- **pgvector lives in the `public` schema.** Moving it would break existing vector types and indexes — documented as an accepted tradeoff.
 
 ---
 
 ## What's next (if continued)
 
-- [ ] Replace naive chunking with semantic chunking
-- [ ] Add hybrid search (BM25 + vector)
-- [ ] Evaluation layer (faithfulness, relevance scoring)
-- [ ] MCP server wrapper — expose any RAGify knowledge base as an MCP tool for Claude
+- [ ] Add a re-ranking layer (cross-encoder) after hybrid fusion
+- [ ] Token-based chunking (currently character-based with sentence awareness)
+- [ ] Query embedding cache to avoid re-embedding repeated queries
+- [ ] **MCP server wrapper — expose any RAGify knowledge base as an MCP tool for Claude**
 
+---
+
+## Author
+
+Built by **Santi** — SaaS builder, EdTech & GovTech.
+[santiagojimenezvalero.com](https://www.santiagojimenezvalero.com) · [LinkedIn](https://www.linkedin.com/in/santijiménezvalero)
 ---
 
 ## Author
