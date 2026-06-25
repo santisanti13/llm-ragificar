@@ -1,0 +1,10 @@
+# RAGify
+
+> Plataforma RAG-as-a-Service para crear APIs de conocimiento IA a partir de documentos propios.
+
+RAGify permite a empresas y desarrolladores subir documentos (PDFs, imágenes, textos, URLs), procesarlos automáticamente en chunks vectorizados y exponer un endpoint REST con autenticación por API key para realizar consultas con contexto real sobre sus datos.
+
+## Pages
+
+- [Inicio](/): Landing principal con descripción del producto, beneficios, flujo de trabajo, integración con código de ejemplo, precios y FAQ.
+- [Documentación API](/docs): Guía completa de integración con la API REST de RAGify, incluyendo ejemplos en cURL, Python, JavaScript y PHP, autenticación por API key, streaming de respuestas, webhooks y analíticas.
