@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { ArrowLeft, FileText, MessageSquare, Loader2, Brain, Upload, Trash2, CheckCircle, AlertCircle, Clock, Settings, Mic, Key, Code, RefreshCw } from 'lucide-react';
+import { ArrowLeft, FileText, MessageSquare, Loader2, Brain, Upload, Trash2, CheckCircle, AlertCircle, Clock, Settings, Mic, Key, Code, RefreshCw, Plug } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { ChatInterface } from '@/components/ChatInterface';
 import { TrainingConfig } from '@/components/TrainingConfig';
@@ -14,6 +14,7 @@ import { VoiceAssistant } from '@/components/VoiceAssistant';
 import { ApiKeysManager } from '@/components/ApiKeysManager';
 import { ApiDocumentation } from '@/components/ApiDocumentation';
 import { SuggestedQuestions } from '@/components/SuggestedQuestions';
+import { McpServerInfo } from '@/components/McpServerInfo';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -265,7 +266,7 @@ export default function ProjectPage() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="documents" className="space-y-6">
-          <TabsList className="sticky top-[73px] z-40 grid w-full max-w-2xl grid-cols-5">
+          <TabsList className="sticky top-[73px] z-40 grid w-full max-w-3xl grid-cols-6">
             <TabsTrigger value="documents" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Docs ({documents.length})</span>
@@ -285,6 +286,10 @@ export default function ProjectPage() {
             <TabsTrigger value="docs" className="flex items-center gap-2">
               <Code className="h-4 w-4" />
               <span className="hidden sm:inline">Docs API</span>
+            </TabsTrigger>
+            <TabsTrigger value="mcp" className="flex items-center gap-2">
+              <Plug className="h-4 w-4" />
+              <span className="hidden sm:inline">MCP</span>
             </TabsTrigger>
           </TabsList>
 
@@ -443,6 +448,10 @@ export default function ProjectPage() {
 
           <TabsContent value="docs" className="animate-fade-in">
             <ApiDocumentation projectId={id!} />
+          </TabsContent>
+
+          <TabsContent value="mcp" className="animate-fade-in">
+            <McpServerInfo projectId={id!} />
           </TabsContent>
         </Tabs>
       </main>
