@@ -497,7 +497,9 @@ console.log(data.answer);`}
           <div className="max-w-3xl">
             <Accordion type="single" collapsible className="space-y-0 border-t border-border">
               {[
-                { q: '¿Qué tipos de documentos puedo subir?', a: 'Soportamos PDF, Word (.docx), Excel (.xlsx), imágenes (con OCR automático), Markdown y archivos HTML. Cada documento se procesa, fragmenta inteligentemente y vectoriza automáticamente.' },
+                { q: '¿Qué tipos de documentos puedo subir?', a: 'Soportamos PDF, TXT, Markdown (.md/.mdx), JSON/JSONL, CSV/TSV, HTML, XML, YAML, TOML, RST, RTF, logs y los formatos de código más comunes. Cada documento se procesa, fragmenta inteligentemente y vectoriza automáticamente.' },
+                { q: '¿Qué es el servidor MCP y para qué sirve?', a: 'MCP (Model Context Protocol) es el estándar abierto que usan Claude, Cursor, Windsurf y otros agentes para conectarse a fuentes de contexto. Cada proyecto en RAGify expone su propio servidor MCP autenticado por Bearer token con tres herramientas: search_knowledge, ask y list_documents. Lo añades a tu cliente y tu agente pasa a razonar sobre tu conocimiento privado.' },
+                { q: '¿Puedo usar a la vez la API REST y MCP?', a: 'Sí. La misma base vectorizada se expone como endpoint REST (/v1/query, streaming SSE) y como servidor MCP (JSON-RPC 2.0). Úsalos en paralelo: REST para tu producto, MCP para tus agentes y editores.' },
                 { q: '¿Cómo funciona la API?', a: 'Obtienes un endpoint REST único por proyecto. Envía un POST con tu pregunta y recibe una respuesta generada por IA con contexto de tus documentos. Incluye autenticación por API Key y rate limiting.' },
                 { q: '¿Es seguro para datos sensibles?', a: 'Sí. Todos los documentos están encriptados en reposo (AES-256) y en tránsito (TLS 1.3). Los datos están completamente aislados por proyecto y nunca se usan para entrenar modelos de terceros.' },
                 { q: '¿Puedo cancelar en cualquier momento?', a: 'Por supuesto. Sin contratos, sin compromiso mínimo. Cambia de plan o cancela desde tu dashboard en cualquier momento.' },
