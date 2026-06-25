@@ -12,12 +12,27 @@ import {
 import logo from '@/assets/logo.png';
 import logoWhite from '@/assets/logo-white.png';
 import LandingDemo from '@/components/LandingDemo';
+import { useStripeCheckout } from '@/hooks/useStripeCheckout';
 
 
 export default function Index() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const { user, loading } = useAuth();
+  const { openCheckout, checkoutElement } = useStripeCheckout();
+
+  const handleSubscribe = (plan: 'starter' | 'pro') => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+    const priceId = `${plan}_${billingPeriod === 'monthly' ? 'monthly' : 'yearly'}`;
+    openCheckout({
+      priceId,
+      planLabel: `${plan === 'starter' ? 'Starter' : 'Pro'} · ${billingPeriod === 'monthly' ? 'Mensual' : 'Anual'}`,
+    });
+  };
 
   useEffect(() => {
     if (!loading && user) {
