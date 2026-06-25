@@ -320,11 +320,13 @@ serve(async (req) => {
     const chunkRecords = validChunks.map((content, index) => ({
       document_id: documentId,
       project_id: doc.project_id,
+      user_id: doc.user_id, // defense in depth; trigger also enforces
       content,
       chunk_index: index,
       // pgvector accepts a string like "[0.1,0.2,...]"
       embedding: embeddings[index] ? `[${embeddings[index]!.join(",")}]` : null,
     }));
+
 
     const { error: insertError } = await supabaseAdmin.from("document_chunks").insert(chunkRecords);
     if (insertError) {
