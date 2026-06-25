@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import {
   ArrowRight, Loader2, Shield, Code, FileText, Bot, Terminal, Check,
-  ChevronRight, Sparkles, Lock, Upload, Brain, Rocket,
+  ChevronRight, Sparkles, Lock, Upload, Brain, Rocket, Plug, Network, Search,
   Menu, X, Play, Zap, Mail, Twitter, Github, Linkedin
 } from 'lucide-react';
 import logo from '@/assets/logo.png';
@@ -34,6 +34,7 @@ export default function Index() {
   const navLinks = [
     { label: 'BENEFICIOS', href: '#benefits' },
     { label: 'CÓMO FUNCIONA', href: '#how-it-works' },
+    { label: 'MCP', href: '#mcp' },
     { label: 'PRECIOS', href: '#pricing' },
     { label: 'FAQ', href: '#faq' },
   ];
@@ -110,22 +111,21 @@ export default function Index() {
           {/* Small badge */}
           <div className="mb-8">
             <span className="inline-block font-mono text-xs tracking-widest px-4 py-2 rounded-full border border-primary/40 text-primary bg-primary/5">
-              RAG AS A SERVICE
+              RAG + MCP AS A SERVICE
             </span>
           </div>
 
           {/* Giant headline */}
-          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-extrabold leading-[0.9] tracking-tight mb-8">
-            RAGify — <span className="text-gradient">API de RAG</span>
-            <br />
-            <span className="text-gradient">inteligente</span> para documentos.
+          <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-semibold leading-[0.95] tracking-tight mb-8 font-display">
+            Convierte tus documentos en una <span className="text-gradient italic">API inteligente</span> — y en un <span className="text-gradient italic">servidor MCP</span> listo para tus agentes.
           </h1>
 
 
           {/* Subtitle - monospaced */}
-          <p className="font-mono text-sm md:text-base text-muted-foreground max-w-xl mb-10 leading-relaxed">
-            Sube documentos, entrena con tus datos y despliega un endpoint RAG
-            listo para producción en minutos. Sin ML. Sin DevOps.
+          <p className="font-mono text-sm md:text-base text-muted-foreground max-w-2xl mb-10 leading-relaxed">
+            RAGify ingiere tus PDFs, JSON, Markdown, HTML y CSV, los vectoriza y
+            los expone como un endpoint REST de RAG y como un servidor MCP nativo.
+            Tu conocimiento, accesible desde tu app, desde Claude, Cursor o cualquier agente — en minutos.
           </p>
 
           {/* CTA */}
@@ -355,8 +355,92 @@ console.log(data.answer);`}
         </div>
       </section>
 
+      {/* MCP Section — Servidor MCP por proyecto */}
+      <section id="mcp" className="py-24 md:py-32 border-t border-border">
+        <div className="container mx-auto px-6">
+          <div className="max-w-5xl">
+            <p className="font-mono text-xs tracking-widest text-primary mb-4">MODEL CONTEXT PROTOCOL</p>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-semibold mb-6 leading-[0.95] font-display">
+              Cada proyecto incluye un <span className="text-gradient italic">servidor MCP</span> nativo.
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mb-16 leading-relaxed">
+              Conecta tu base de conocimiento directamente a Claude Desktop, Cursor, Windsurf o
+              cualquier cliente compatible con MCP. Sin pegamento, sin proxys: un endpoint
+              JSON-RPC 2.0 autenticado por API key, listo para que tus agentes razonen sobre tus datos.
+            </p>
+
+            <div className="grid md:grid-cols-3 gap-px bg-border mb-16">
+              <McpToolCard
+                icon={<Search className="h-5 w-5" />}
+                name="search_knowledge"
+                description="Búsqueda híbrida (semántica + full-text) sobre los chunks del proyecto. Devuelve fragmentos con score y metadatos."
+              />
+              <McpToolCard
+                icon={<Brain className="h-5 w-5" />}
+                name="ask"
+                description="Respuesta sintetizada por el pipeline RAG con citas numeradas. Ideal para flujos conversacionales del agente."
+              />
+              <McpToolCard
+                icon={<FileText className="h-5 w-5" />}
+                name="list_documents"
+                description="Inventario completo de documentos indexados: nombre, tipo, fecha y número de chunks vectorizados."
+              />
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-12 items-start">
+              <div>
+                <p className="font-mono text-xs tracking-widest text-muted-foreground mb-4">PARA QUÉ SIRVE</p>
+                <ul className="space-y-4">
+                  {[
+                    { t: 'Claude / Cursor con tu conocimiento', d: 'Tu equipo escribe código o redacta en Claude y el agente consulta tus manuales, tickets o políticas en tiempo real.' },
+                    { t: 'Agentes autónomos con memoria privada', d: 'Tu agente de soporte, ventas u operaciones razona sobre documentos internos sin exponerlos a terceros.' },
+                    { t: 'Un único protocolo, cero integraciones', d: 'MCP es el estándar abierto que ya hablan los LLMs líderes. Activa una vez, úsalo desde cualquier cliente.' },
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Check className="h-3 w-3" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{item.t}</p>
+                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">{item.d}</p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="bg-card border border-border overflow-hidden shadow-2xl">
+                <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 border-b border-border">
+                  <div className="flex gap-1.5">
+                    <div className="w-3 h-3 rounded-full bg-destructive/60" />
+                    <div className="w-3 h-3 rounded-full bg-warning/60" />
+                    <div className="w-3 h-3 rounded-full bg-primary/60" />
+                  </div>
+                  <span className="text-xs text-muted-foreground ml-2 font-mono">claude_desktop_config.json</span>
+                </div>
+                <pre className="p-6 text-xs overflow-x-auto">
+                  <code className="text-muted-foreground font-mono">
+{`{
+  "mcpServers": {
+    "ragify": {
+      "url": "https://api.ragify.dev/mcp/{project_id}",
+      "headers": {
+        "Authorization": "Bearer rag_xxxxxxxxxxxx"
+      }
+    }
+  }
+}`}
+                  </code>
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing */}
       <section id="pricing" className="py-24 md:py-32 border-t border-border">
+
         <div className="container mx-auto px-6">
           <p className="font-mono text-xs tracking-widest text-muted-foreground mb-4">Precios</p>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 max-w-2xl">
@@ -413,7 +497,9 @@ console.log(data.answer);`}
           <div className="max-w-3xl">
             <Accordion type="single" collapsible className="space-y-0 border-t border-border">
               {[
-                { q: '¿Qué tipos de documentos puedo subir?', a: 'Soportamos PDF, Word (.docx), Excel (.xlsx), imágenes (con OCR automático), Markdown y archivos HTML. Cada documento se procesa, fragmenta inteligentemente y vectoriza automáticamente.' },
+                { q: '¿Qué tipos de documentos puedo subir?', a: 'Soportamos PDF, TXT, Markdown (.md/.mdx), JSON/JSONL, CSV/TSV, HTML, XML, YAML, TOML, RST, RTF, logs y los formatos de código más comunes. Cada documento se procesa, fragmenta inteligentemente y vectoriza automáticamente.' },
+                { q: '¿Qué es el servidor MCP y para qué sirve?', a: 'MCP (Model Context Protocol) es el estándar abierto que usan Claude, Cursor, Windsurf y otros agentes para conectarse a fuentes de contexto. Cada proyecto en RAGify expone su propio servidor MCP autenticado por Bearer token con tres herramientas: search_knowledge, ask y list_documents. Lo añades a tu cliente y tu agente pasa a razonar sobre tu conocimiento privado.' },
+                { q: '¿Puedo usar a la vez la API REST y MCP?', a: 'Sí. La misma base vectorizada se expone como endpoint REST (/v1/query, streaming SSE) y como servidor MCP (JSON-RPC 2.0). Úsalos en paralelo: REST para tu producto, MCP para tus agentes y editores.' },
                 { q: '¿Cómo funciona la API?', a: 'Obtienes un endpoint REST único por proyecto. Envía un POST con tu pregunta y recibe una respuesta generada por IA con contexto de tus documentos. Incluye autenticación por API Key y rate limiting.' },
                 { q: '¿Es seguro para datos sensibles?', a: 'Sí. Todos los documentos están encriptados en reposo (AES-256) y en tránsito (TLS 1.3). Los datos están completamente aislados por proyecto y nunca se usan para entrenar modelos de terceros.' },
                 { q: '¿Puedo cancelar en cualquier momento?', a: 'Por supuesto. Sin contratos, sin compromiso mínimo. Cambia de plan o cancela desde tu dashboard en cualquier momento.' },
@@ -541,13 +627,15 @@ console.log(data.answer);`}
 function MarqueeTicker() {
   const items = [
     'RAG COMO SERVICIO',
+    'SERVIDOR MCP NATIVO',
+    'CLAUDE · CURSOR · WINDSURF',
     'SIN ML REQUERIDO',
     'LISTO PARA PRODUCCIÓN',
     'ENCRIPTACIÓN AES-256',
     'EMBEDDINGS REALES',
     '< 100ms LATENCIA',
-    'API REST',
-    'BÚSQUEDA SEMÁNTICA',
+    'API REST + JSON-RPC',
+    'BÚSQUEDA HÍBRIDA',
   ];
 
   return (
@@ -643,3 +731,16 @@ function PricingCard({ name, price, period, description, features, highlighted, 
     </div>
   );
 }
+
+function McpToolCard({ icon, name, description }: { icon: React.ReactNode; name: string; description: string }) {
+  return (
+    <div className="bg-background p-8 group hover:bg-primary/5 transition-colors duration-300">
+      <div className="w-10 h-10 rounded-md bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+        {icon}
+      </div>
+      <code className="font-mono text-sm text-primary block mb-3">{name}</code>
+      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
