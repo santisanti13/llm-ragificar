@@ -347,6 +347,30 @@ llm-ragificar/
 
 ---
 
+## 9.5 Migraciones de base de datos clave
+
+Las migraciones están en `supabase/migrations/`. Algunas de las más importantes:
+
+| Migración | Propósito |
+|---|---|
+| `20251209170514` | Esquema base: `projects`, `documents`, `document_chunks`; extensión `pgvector`; RLS base. |
+| `20251209170532` | Trigger que fuerza `user_id` en `document_chunks` (multitenancy). |
+| `20251209171855` | Tabla `project_api_keys` para autenticación por API. |
+| `20251209205914` | Tabla `user_subscriptions` para suscripciones de Stripe. |
+| `20260302123936` | `hybrid_search` RPC con embeddings `vector(768)`. |
+| `20260305162025` | Configuración `similarity_threshold` por proyecto. |
+| `20260305163750` / `20260513083307` | Columnas `fts` y `fts_es` + índices GIN para búsqueda full-text en inglés/español. |
+| `20260513085021` / `20260513090151` | RLS estricto en `document_chunks` y `user_subscriptions`. |
+| `20260625081404` / `20260625093225` | Tablas `conversation_threads` y `thread_messages` para memoria de chat. |
+| `20260625134002` | Columnas `price_id`, `status`, `environment` en `user_subscriptions`. |
+| `20260625145439` | Infraestructura de email: `pgmq`, `pg_net`, `pg_cron`, `supabase_vault`, `email_send_log`. |
+| `20260625145719` | Job `pg_cron` para generar posts de blog cada 12 h. |
+| `20260626092850` / `20260626111243` | Seguridad de cola de email: revoca permisos públicos y fija `search_path`. |
+
+Extensiones requeridas: `vector`, `pg_net`, `pg_cron`, `pgmq`, `supabase_vault`.
+
+---
+
 ## 10. Configuración adicional
 
 ### 10.1 Autenticación con Lovable Cloud Auth
