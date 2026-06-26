@@ -233,6 +233,10 @@ const BlogPostPage = () => {
             </div>
           </header>
 
+          {/* Audio player */}
+          <BlogAudioPlayer title={post.title} contentMd={post.content_md} />
+
+
           {/* Article content */}
           <div
             className="prose prose-invert max-w-none space-y-8
