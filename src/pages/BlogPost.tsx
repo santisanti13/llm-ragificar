@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import logo from "@/assets/logo.png";
 import { Link, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
