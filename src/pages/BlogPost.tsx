@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import logo from "@/assets/logo.png";
 import { Link, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -211,8 +212,8 @@ const BlogPostPage = () => {
             </div>
 
             <div className="flex items-center gap-4 pt-2">
-              <div className="w-12 h-12 rounded-full bg-[#D4FF00] flex items-center justify-center text-black font-bold text-lg" style={{ fontFamily: "Lora, serif" }}>
-                R
+              <div className="w-12 h-12 rounded-full bg-[#D4FF00] flex items-center justify-center overflow-hidden p-1.5">
+                <img src={logo} alt="RAGify" className="h-full w-full object-contain" />
               </div>
               <div className="text-sm">
                 <p className="font-bold text-white">RAGify Research</p>
