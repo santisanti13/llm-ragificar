@@ -349,21 +349,30 @@ llm-ragificar/
 
 ## 10. Configuración adicional
 
-### 10.1 Google OAuth
+### 10.1 Autenticación con Lovable Cloud Auth
 
-El proyecto usa `@lovable.dev/cloud-auth-js`. Para desarrollo local, asegúrate de que la URL `http://localhost:8080` esté en los **Authorized redirect URIs** del proveedor de Google en Supabase Auth.
+El frontend no usa directamente Supabase Auth. En su lugar, utiliza **`@lovable.dev/cloud-auth-js`** (`src/pages/Auth.tsx`):
 
-### 10.2 Stripe
+- **Google OAuth** es el método principal: `lovable.auth.signInWithOAuth('google', ...)`.
+- También existe email/password.
+- El JWT resultante se envía en el header `Authorization: Bearer <token>` a las Edge Functions.
+- Para desarrollo local, añade `http://localhost:8080` como **redirect URI autorizado** en la configuración de Google OAuth dentro del dashboard de Lovable/Supabase.
+
+### 10.2 Stripe y el gateway de Lovable
+
+Stripe no se consume directamente desde el backend. Las funciones `create-checkout`, `create-portal-session` y `payments-webhook` se comunican con Stripe a través del **gateway de Lovable** (`https://connector-gateway.lovable.dev/stripe`). Por tanto, **`LOVABLE_API_KEY` es obligatorio no solo para IA, sino también para pagos**.
+
+Pasos para configurar pagos:
 
 1. Crea productos y precios en Stripe con `lookup_key`:
-   - `starter_monthly`, `starter_yearly`
-   - `pro_monthly`, `pro_yearly`
-   - `enterprise_monthly`, `enterprise_yearly`
-2. Configura el webhook apuntando a:
+   - `starter_monthly` / `starter_yearly` (19 €/mes, 193,80 €/año con 15 % de descuento)
+   - `pro_monthly` / `pro_yearly` (79 €/mes, 805,80 €/año con 15 % de descuento)
+   - `enterprise_monthly` / `enterprise_yearly` (por contacto)
+2. Registra el webhook en Stripe apuntando a:
    ```
    https://tu-project-id.supabase.co/functions/v1/payments-webhook?env=sandbox
    ```
-3. Añade el webhook secret a las variables de entorno.
+3. Añade `PAYMENTS_SANDBOX_WEBHOOK_SECRET` (o `PAYMENTS_LIVE_WEBHOOK_SECRET`) a las variables de entorno.
 
 ### 10.3 Email
 
