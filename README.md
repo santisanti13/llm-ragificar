@@ -1,142 +1,468 @@
-# RAGify — Tu API inteligente de documentos
+# RAGify — RAG-as-a-Service con API, MCP y voz
 
-> RAG-as-a-Service para todos. Sube tus documentos, obtén una API privada y segura que puedes conectar a cualquier herramienta.
+> Convierte tus documentos en una base de conocimiento privada con API, chat, asistente de voz y servidor MCP.
 
 **Live:** [llm-ragificar.lovable.app](https://llm-ragificar.lovable.app)
 
----
-
-## Context
-
-RAGify was built before "RAG" became a standard term in product conversations.
-
-The idea was simple: most organizations sit on enormous amounts of knowledge locked inside PDFs, docs, wikis, and emails — and have no way to make that knowledge accessible to an AI. Fine-tuning is expensive and requires ML expertise. RAGify was an attempt to democratize that: upload your documents, get an API back, connect it to whatever you're building.
-
-Today, companies like Cohere, Pinecone, and LlamaIndex sell this at enterprise scale. At the time RAGify was built, doing it from scratch as a solo builder — with a working product, a brand, and a live URL — was the point.
+> ⚠️ **Nota de seguridad:** el repositorio no incluye `.env.example` y el archivo `.env` actual contiene credenciales reales del proyecto. **No lo commitees**. Si vas a trabajar en equipo, crea manualmente un `.env.example` a partir de las tablas de este documento.
 
 ---
 
-## What it does
+## 1. Qué es RAGify
 
-RAGify turns your documents into a private, queryable API:
+RAGify es una plataforma de **Retrieval-Augmented Generation (RAG)** como servicio. El usuario sube documentos, el sistema los divide en fragmentos, genera embeddings y permite hacer preguntas en lenguaje natural obteniendo respuestas fundamentadas en el propio contenido.
 
-1. **Upload documents** — PDFs, text files, web content
-2. **RAGify indexes them** — recursive sentence-aware chunking, embeds, stores in pgvector
-3. **Query in natural language** — hybrid retrieval (full-text + semantic) surfaces the most relevant context
-4. **Expose as API** — connect the knowledge base to any tool, chatbot, or workflow
+### Funcionalidades principales
 
-```
-Documents → Chunking → Embedding → Vector DB (pgvector + HNSW)
-                                        │
-User query → Embedding → Hybrid search → Context retrieval
-              + Full-text (ES/EN)              │
-                                       LLM + Context → Answer
-```
+- **Ingesta multi-formato:** PDF, TXT, MD, JSON, CSV, HTML, XML, YAML y code files.
+- **Chunking recursivo:** párrafo → oración → palabra, con solapamiento y respeto de límites de palabra.
+- **Búsqueda híbrida:** pgvector (HNSW, similitud coseno) + Full-Text Search (español/inglés) fusionados con RRF.
+- **Embeddings:** Gemini `gemini-embedding-001` (768-dim) vía Lovable AI Gateway.
+- **Chat con memoria:** hilos de conversación, ventana deslizante y resúmenes cada 10 turnos.
+- **API pública por proyecto:** autenticación con API key (`x-api-key` o `Authorization: Bearer`).
+- **Servidor MCP:** cada proyecto expone `search_knowledge`, `ask` y `list_documents` para Claude/Cursor.
+- **Asistente de voz:** STT/TTS y conversación WebRTC con ElevenLabs.
+- **Monetización:** planes Free / Starter / Pro / Enterprise con Stripe (Embedded Checkout + portal).
+- **Blog automatizado:** generación de posts técnicos cada 12 h con Gemini y envío por email.
 
 ---
 
-## Architecture
+## 2. Arquitectura
 
 ```
-User uploads document
-        │
-        ▼
-   RAGify ingestion pipeline (Supabase Edge Function)
-   ├── Text extraction
-   ├── Recursive chunking (paragraph → sentence → word)
-   │   word-boundary overlap, no mid-word cuts
-   ├── Embedding (Gemini, 768-dim, via AI Gateway)
-   │   graceful fallback to full-text if gateway is down
-   └── Storage (pgvector, HNSW index, cosine similarity)
-        │
-        ▼
-   Query interface
-   ├── Query embedding
-   ├── Hybrid search: semantic (HNSW) + full-text (ES/EN)
-   ├── Result fusion
-   └── LLM generation (grounded answer)
-        │
-        ▼
-   API response → your app / chatbot / tool
+Usuario (Landing / Dashboard / API / MCP)
+                │
+                ▼
+        React + Vite + shadcn/ui
+                │
+                ▼
+      Supabase Edge Functions (Deno)
+                │
+                ├── process-document  ──► OCR/txt + chunking + embeddings
+                ├── rag-chat          ──► chat SSE con memoria
+                ├── api-query         ──► API pública con rate limiting
+                ├── mcp-server        ──► JSON-RPC por proyecto
+                ├── create-checkout   ──► Stripe checkout
+                ├── payments-webhook  ──► sincroniza suscripciones
+                ├── generate-blog-post ──► posts automáticos
+                └── tts-blog / voice-* / demo-rag …
+                │
+                ▼
+      PostgreSQL + pgvector + HNSW + GIN FTS
 ```
 
 ---
 
-## Tech stack
+## 3. Requisitos previos
 
-| Layer | Technology |
+- **Node.js** 18+ (solo para compatibilidad con algunos tools)
+- **Bun** 1.0+ (gestor de paquetes principal del proyecto)
+- **Supabase CLI** 1.200+ (para funciones y migraciones locales)
+- **Deno** 1.40+ (runtime de las Edge Functions)
+- Cuenta de **Lovable** con proyecto conectado a Supabase
+- Cuenta de **Stripe** (sandbox al menos) para pagos
+
+---
+
+## 4. Instalación local
+
+### 4.1 Clonar el repositorio
+
+```bash
+git clone https://github.com/santisanti13/llm-ragificar.git
+cd llm-ragificar
+```
+
+### 4.2 Instalar dependencias
+
+```bash
+bun install
+```
+
+> Si usas `npm`, los scripts siguen siendo `npm run <script>`, pero el proyecto utiliza `bun.lock` como fuente de verdad de bloqueo.
+
+### 4.3 Inicializar Supabase local
+
+```bash
+supabase login
+supabase init        # si no existe .supabase/
+supabase start
+```
+
+Esto levanta PostgreSQL, el studio local, el auth service y el functions server.
+
+---
+
+## 5. Variables de entorno
+
+### 5.1 Frontend (`VITE_*`)
+
+Crear `.env` en la raíz del proyecto:
+
+```bash
+VITE_SUPABASE_PROJECT_ID="tu-project-id"
+VITE_SUPABASE_URL="https://tu-project-id.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY="tu-anon-key"
+VITE_PAYMENTS_CLIENT_TOKEN="pk_test_..."     # Stripe publishable key
+```
+
+Estas variables se inyectan en el build de Vite. **Nunca subas `.env` a Git** (ya está en `.gitignore`).
+
+### 5.2 Edge Functions (runtime secrets)
+
+Las Edge Functions leen el entorno de Supabase. En local, se inyectan desde `supabase/config.toml` o `supabase secrets`. En producción se configuran desde el dashboard de Lovable o con la CLI:
+
+```bash
+supabase secrets set LOVABLE_API_KEY=lovable_xxx
+supabase secrets set SUPABASE_URL=https://tu-project-id.supabase.co
+supabase secrets set SUPABASE_ANON_KEY=tu-anon-key
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
+supabase secrets set ELEVENLABS_API_KEY=sk_xxx
+supabase secrets set ELEVENLABS_AGENT_ID=xxx
+supabase secrets set STRIPE_SANDBOX_API_KEY=sk_test_xxx
+supabase secrets set STRIPE_LIVE_API_KEY=sk_live_xxx
+supabase secrets set PAYMENTS_SANDBOX_WEBHOOK_SECRET=whsec_xxx
+supabase secrets set PAYMENTS_LIVE_WEBHOOK_SECRET=whsec_xxx
+```
+
+### 5.3 Resumen de variables requeridas
+
+| Variable | Usada en | Obligatoria | Notas |
+|---|---|---|---|
+| `VITE_SUPABASE_URL` | Frontend | Sí | URL del proyecto Supabase. |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Frontend | Sí | `anon` key. |
+| `VITE_PAYMENTS_CLIENT_TOKEN` | Frontend | Sí | Stripe publishable key (sandbox o live). |
+| `SUPABASE_URL` | Edge Functions | Sí | Igual que `VITE_SUPABASE_URL`. |
+| `SUPABASE_ANON_KEY` | Edge Functions | Sí | Para autenticación de usuarios. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Edge Functions | Sí | Para operaciones administrativas (bypass RLS). |
+| `LOVABLE_API_KEY` | Edge Functions | Sí | Acceso a Lovable AI Gateway (chat, embeddings, TTS, STT) y pasarela de pagos. |
+| `LOVABLE_SEND_URL` | process-email-queue | No | Override del endpoint de envío de emails (útil para desarrollo local). |
+| `ELEVENLABS_API_KEY` | elevenlabs-conversation-token | Sí | Si usas agente de voz. |
+| `ELEVENLABS_AGENT_ID` | elevenlabs-conversation-token | Sí | ID del agente conversacional. |
+| `STRIPE_SANDBOX_API_KEY` | create-checkout, payments-webhook | Sí para pagos | O también `STRIPE_LIVE_API_KEY`. Stripe se enruta vía el gateway de Lovable. |
+| `PAYMENTS_SANDBOX_WEBHOOK_SECRET` | payments-webhook | Sí para webhooks | O también `PAYMENTS_LIVE_WEBHOOK_SECRET`. |
+| `SUPABASE_JWKS` | demo-rag | No | Sal usada para hashear IPs de demo. |
+
+---
+
+## 6. Comandos para ejecutar el RAG y el frontend
+
+### 6.1 Frontend
+
+```bash
+bun run dev
+```
+
+La app se sirve en `http://localhost:8080` (host `::`, puerto 8080).
+
+### 6.2 Build de producción
+
+```bash
+bun run build
+bun run preview      # sirve el build localmente
+```
+
+### 6.3 Lint
+
+```bash
+bun run lint
+```
+
+### 6.4 Edge Functions
+
+#### Ejecutar una función localmente
+
+```bash
+supabase functions serve api-query --env-file .env.local
+```
+
+Crea un `.env.local` con las variables del backend:
+
+```bash
+SUPABASE_URL=https://tu-project-id.supabase.co
+SUPABASE_ANON_KEY=tu-anon-key
+SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key
+LOVABLE_API_KEY=lovable_xxx
+ELEVENLABS_API_KEY=sk_xxx
+ELEVENLABS_AGENT_ID=xxx
+STRIPE_SANDBOX_API_KEY=sk_test_xxx
+PAYMENTS_SANDBOX_WEBHOOK_SECRET=whsec_xxx
+```
+
+#### Desplegar todas las funciones
+
+```bash
+supabase functions deploy
+```
+
+#### Desplegar una función concreta
+
+```bash
+supabase functions deploy api-query
+```
+
+### 6.5 Migraciones de base de datos
+
+```bash
+# Aplicar migraciones pendientes en el proyecto remoto
+supabase db push
+
+# Generar una nueva migración desde cambios locales
+supabase db diff -f nueva_feature
+```
+
+### 6.6 Probar el pipeline de RAG
+
+1. Levanta el frontend: `bun run dev`.
+2. Regístrate e inicia sesión.
+3. Crea un proyecto desde el dashboard.
+4. Sube un documento en la pestaña **Conocimiento**.
+5. Espera a que el estado pase a `indexed` (se invoca `process-document`).
+6. Ve a la pestaña **Chat** y haz una pregunta sobre el documento.
+
+Alternativamente, prueba la API directamente:
+
+```bash
+curl -X POST https://tu-project-id.supabase.co/functions/v1/api-query \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: tu-api-key" \
+  -d '{"project_id":"tu-project-id","query":"¿Qué dice el documento sobre...?"}'
+```
+
+### 6.7 Probar el servidor MCP
+
+Configura Claude/Cursor con la URL del proyecto:
+
+```json
+{
+  "mcpServers": {
+    "ragify-mi-proyecto": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@anthropic-ai/mcp-remote",
+        "https://tu-project-id.supabase.co/functions/v1/mcp-server/tu-project-id"
+      ],
+      "env": {
+        "API_KEY": "tu-project-api-key"
+      }
+    }
+  }
+}
+```
+
+O usa la URL directa con `Authorization: Bearer <api-key>`.
+
+---
+
+## 7. Flujo de trabajo RAG detallado
+
+### 7.1 Ingesta de documentos (`process-document`)
+
+1. Recibe `{ documentId }` autenticado con JWT.
+2. Descarga el archivo desde Supabase Storage.
+3. Extrae texto según el formato:
+   - **PDF**: Gemini con visión sobre el PDF en base64.
+   - **Texto plano**: lectura directa.
+   - **JSON/CSV/YAML/XML**: normalización a texto legible.
+4. Limpia el texto y aplica chunking recursivo.
+5. Genera embeddings por lotes de 20 vía Lovable AI Gateway (`google/gemini-embedding-001`, 768 dim).
+6. Inserta los chunks en `document_chunks` con `user_id` y vector.
+7. Actualiza `documents.status` a `indexed` o `error`.
+
+### 7.2 Recuperación (`rag-chat` / `api-query`)
+
+1. Valida autenticación (JWT de usuario o API key).
+2. Valida límites del tier (`can_user_make_query`).
+3. Genera embedding de la consulta.
+4. Ejecuta en paralelo:
+   - `match_document_chunks` (semantic, HNSW, coseno).
+   - `search_document_chunks_fts` (full-text, español/inglés).
+5. Fusiona resultados con RRF y filtra por `similarity_threshold`.
+6. Corta el contexto si supera el presupuesto de tokens (70 % del contexto del modelo).
+7. Construye el prompt con citas `[1]`, `[2]` y ejemplos de entrenamiento.
+8. Genera respuesta con temperatura 0.2 (por defecto).
+9. Si no hay contexto relevante, responde con el mensaje corto de "no encontré información".
+10. Guarda métricas en `api_query_logs` o `thread_messages`.
+
+### 7.3 Memoria conversacional
+
+- Cada hilo se almacena en `conversation_threads`.
+- Se guardan los últimos 6 mensajes en `thread_messages`.
+- Cada 10 turnos se genera un resumen y se vacían mensajes antiguos.
+
+---
+
+## 8. Edge Functions disponibles
+
+| Función | Auth | Descripción |
+|---|---|---|
+| `api-query` | API key | Endpoint público del RAG. Rate limit 100 req/min. |
+| `rag-chat` | JWT | Chat SSE con memoria y citas. |
+| `process-document` | JWT | Ingesta y chunking de documentos. |
+| `reprocess-project` | JWT | Reprocesa todos los documentos de un proyecto. |
+| `generate-questions` | JWT | Genera 5 Q&A de entrenamiento por documento. |
+| `mcp-server` | API key | Servidor MCP JSON-RPC por proyecto. |
+| `demo-rag` | Anónimo | Demo pública de la landing (5 usos/IP/día). |
+| `create-checkout` | JWT manual | `verify_jwt=false`, pero exige Bearer token válido. |
+| `create-portal-session` | JWT manual | `verify_jwt=false`, pero exige Bearer token válido. |
+| `payments-webhook` | Stripe signature | Recibe eventos de Stripe. |
+| `generate-blog-post` | service_role / cron | Genera posts de blog cada 12 h. |
+| `tts-blog` | JWT | TTS de post para el reproductor de audio. |
+| `send-transactional-email` | JWT | Envía emails transaccionales. |
+| `process-email-queue` | service_role | Procesa colas de emails vía `pgmq`. |
+| `elevenlabs-conversation-token` | Sin JWT | Token para WebRTC de ElevenLabs (valida JWT internamente). |
+| `voice-stt` | JWT | Speech-to-text vía Lovable AI Gateway. |
+| `voice-tts` | JWT | Text-to-speech vía Lovable AI Gateway. |
+| `handle-email-suppression` | service_role | Maneja bounces/complaints. |
+| `handle-email-unsubscribe` | token | Desuscribe emails. |
+| `preview-transactional-email` | JWT | Vista previa de plantillas de email. |
+
+---
+
+## 9. Estructura del proyecto
+
+```
+llm-ragificar/
+├── public/                     # Assets estáticos (logo, video, etc.)
+├── src/
+│   ├── assets/                 # Imágenes y logos
+│   ├── components/             # Componentes React (shadcn/ui + custom)
+│   ├── hooks/                  # Custom hooks (React Query, Stripe, etc.)
+│   ├── integrations/supabase/  # Cliente Supabase auto-generado
+│   ├── lib/                    # Utilidades, helpers, stripe.ts
+│   ├── pages/                  # Páginas de la app (Index, Dashboard, Project, Blog, etc.)
+│   ├── App.tsx                 # Router y layout
+│   └── main.tsx                # Entry point
+├── supabase/
+│   ├── functions/              # Edge Functions (Deno)
+│   ├── migrations/             # Migraciones SQL de PostgreSQL
+│   └── config.toml             # Configuración de Supabase CLI
+├── .env                        # Variables de entorno frontend (no commitear)
+├── .env.development            # Variables de desarrollo
+├── package.json
+├── vite.config.ts
+└── tailwind.config.ts
+```
+
+---
+
+## 9.5 Migraciones de base de datos clave
+
+Las migraciones están en `supabase/migrations/`. Algunas de las más importantes:
+
+| Migración | Propósito |
 |---|---|
-| Frontend | React + TypeScript + Lovable |
-| UI | shadcn/ui + Tailwind CSS |
-| Backend | Supabase (PostgreSQL + Edge Functions) |
-| Vector store | pgvector with HNSW index (cosine) |
-| Embeddings | Gemini `gemini-embedding-001` (768-dim) via AI Gateway |
-| Search | Hybrid — semantic + full-text (Spanish & English) |
-| Deployment | Lovable |
+| `20251209170514` | Esquema base: `projects`, `documents`, `document_chunks`; extensión `pgvector`; RLS base. |
+| `20251209170532` | Trigger que fuerza `user_id` en `document_chunks` (multitenancy). |
+| `20251209171855` | Tabla `project_api_keys` para autenticación por API. |
+| `20251209205914` | Tabla `user_subscriptions` para suscripciones de Stripe. |
+| `20260302123936` | `hybrid_search` RPC con embeddings `vector(768)`. |
+| `20260305162025` | Configuración `similarity_threshold` por proyecto. |
+| `20260305163750` / `20260513083307` | Columnas `fts` y `fts_es` + índices GIN para búsqueda full-text en inglés/español. |
+| `20260513085021` / `20260513090151` | RLS estricto en `document_chunks` y `user_subscriptions`. |
+| `20260625081404` / `20260625093225` | Tablas `conversation_threads` y `thread_messages` para memoria de chat. |
+| `20260625134002` | Columnas `price_id`, `status`, `environment` en `user_subscriptions`. |
+| `20260625145439` | Infraestructura de email: `pgmq`, `pg_net`, `pg_cron`, `supabase_vault`, `email_send_log`. |
+| `20260625145719` | Job `pg_cron` para generar posts de blog cada 12 h. |
+| `20260626092850` / `20260626111243` | Seguridad de cola de email: revoca permisos públicos y fija `search_path`. |
+
+Extensiones requeridas: `vector`, `pg_net`, `pg_cron`, `pgmq`, `supabase_vault`.
 
 ---
 
-## Technical highlights
+## 10. Configuración adicional
 
-What's actually under the hood — verified, not aspirational:
+### 10.1 Autenticación con Lovable Cloud Auth
 
-### Recursive sentence-aware chunking
-Documents are split hierarchically: paragraph → sentence → word, with overlap snapped to word boundaries so chunks never break mid-word. The sentence regex handles Spanish punctuation (`¡¿`) and accented capitals. Chunk size and overlap are configurable per project.
+El frontend no usa directamente Supabase Auth. En su lugar, utiliza **`@lovable.dev/cloud-auth-js`** (`src/pages/Auth.tsx`):
 
-### Hybrid retrieval
-Every query runs **two** searches in parallel and fuses the results:
-- **Semantic search** over pgvector using an HNSW index (`m=16, ef_construction=64`) with cosine similarity
-- **Full-text search** with separate Spanish and English configurations (GIN indexes)
+- **Google OAuth** es el método principal: `lovable.auth.signInWithOAuth('google', ...)`.
+- También existe email/password.
+- El JWT resultante se envía en el header `Authorization: Bearer <token>` a las Edge Functions.
+- Para desarrollo local, añade `http://localhost:8080` como **redirect URI autorizado** en la configuración de Google OAuth dentro del dashboard de Lovable/Supabase.
 
-This means queries match both on meaning (semantic) and on exact terms (full-text) — more robust than either alone.
+### 10.2 Stripe y el gateway de Lovable
 
-### Resilient embeddings
-The embedding model is called through the Lovable AI Gateway with explicit error handling:
-- **429 (rate limit)** → backoff and retry
-- **402 (out of credits)** → continues with `embedding=null`, degrading gracefully
-- **5xx (gateway error)** → falls back to full-text search
+Stripe no se consume directamente desde el backend. Las funciones `create-checkout`, `create-portal-session` y `payments-webhook` se comunican con Stripe a través del **gateway de Lovable** (`https://connector-gateway.lovable.dev/stripe`). Por tanto, **`LOVABLE_API_KEY` es obligatorio no solo para IA, sino también para pagos**.
 
-If the embedding service goes down, RAGify keeps answering with full-text instead of failing.
+Pasos para configurar pagos:
 
-### Row-level multi-tenancy
-Data isolation is enforced at the database level, not just in application code:
-- Every chunk carries a `user_id` (NOT NULL, FK to auth users, cascade delete)
-- A **BEFORE INSERT/UPDATE trigger** forces `user_id` to match the parent document's owner — a client cannot forge ownership even if it tries to inject a fake `user_id`
-- RLS policies enforce `user_id = auth.uid()` on every operation (select/insert/update/delete)
+1. Crea productos y precios en Stripe con `lookup_key`:
+   - `starter_monthly` / `starter_yearly` (19 €/mes, 193,80 €/año con 15 % de descuento)
+   - `pro_monthly` / `pro_yearly` (79 €/mes, 805,80 €/año con 15 % de descuento)
+   - `enterprise_monthly` / `enterprise_yearly` (por contacto)
+2. Registra el webhook en Stripe apuntando a:
+   ```
+   https://tu-project-id.supabase.co/functions/v1/payments-webhook?env=sandbox
+   ```
+3. Añade `PAYMENTS_SANDBOX_WEBHOOK_SECRET` (o `PAYMENTS_LIVE_WEBHOOK_SECRET`) a las variables de entorno.
 
-A query from user A can only ever return user A's chunks.
+### 10.3 Email
 
----
+El dominio remitente es `notify.tikshoptok.com`. La infraestructura de email (`pgmq`, `pg_net`, `pg_cron`, `supabase_vault`) se gestiona automáticamente con las migraciones. Asegúrate de que `process-email-queue` tenga `verify_jwt = true` y de que el job de `pg_cron` llame al edge function con la service role key.
 
-## Why it matters (then and now)
+### 10.4 Blog automático
 
-When RAGify was built, the dominant approach to "make an AI know your stuff" was fine-tuning — expensive, slow, and requiring ML expertise most teams don't have. RAG offered a better tradeoff: no training, no GPU, just retrieval + generation.
-
-The insight was product, not research: **most people don't need a smarter model, they need their model to know their data.** RAGify was a product bet on that insight.
-
-The market validated it. Every major AI platform now offers some form of RAG or "knowledge base" feature. RAGify was an early, solo implementation of the same pattern — and one that holds up technically: hybrid search, HNSW indexing, and row-level tenant isolation are the same primitives the mature tools use.
+El job `generate-blog-post` se ejecuta cada 12 horas vía `pg_cron`. El destinatario fijo está configurado en `generate-blog-post/index.ts` como `santiagojimenezvalero@gmail.com`. Para cambiarlo, modifica la constante `NOTIFY_EMAIL` y vuelve a desplegar.
 
 ---
 
-## Known tradeoffs
+## 11. Testing
 
-Honest engineering notes:
+```bash
+# Tests unitarios con Vitest
+bunx vitest run
 
-- **No re-ranking layer yet.** After hybrid fusion, results aren't re-ranked by a cross-encoder (Cohere/Voyage). For the current data scale this isn't necessary, but it's the next quality lever.
-- **Embedding dimension override.** The 768-dim Matryoshka truncation relies on gateway behavior; pinned and documented in code as a known dependency.
-- **pgvector lives in the `public` schema.** Moving it would break existing vector types and indexes — documented as an accepted tradeoff.
+# UI de tests
+bunx vitest --ui
+```
+
+### 11.1 Test cards de Stripe
+
+Para probar el checkout en sandbox, usa:
+
+- **Tarjeta exitosa:** `4242 4242 4242 4242`, cualquier fecha futura, cualquier CVC.
+- **Tarjeta que requiere 3D Secure:** `4000 0025 0000 3155`.
+- **Tarjeta rechazada:** `4000 0000 0000 0002`.
 
 ---
 
-## What's next (if continued)
+## 12. Solución de problemas
 
-- [ ] Add a re-ranking layer (cross-encoder) after hybrid fusion
-- [ ] Token-based chunking (currently character-based with sentence awareness)
-- [ ] Query embedding cache to avoid re-embedding repeated queries
-- [ ] **MCP server wrapper — expose any RAGify knowledge base as an MCP tool for Claude**
+### 12.1 `Error: LOVABLE_API_KEY not configured`
 
+Configura el secreto en Supabase:
 
-## Author
+```bash
+supabase secrets set LOVABLE_API_KEY=lovable_xxx
+```
+
+Y en local añádelo a `.env.local` o pásalo con `--env-file`.
+
+### 12.2 Embeddings con dimensión incorrecta
+
+La columna `document_chunks.embedding` es `vector(768)`. Si ves errores de dimensión, reprocesa el proyecto:
+
+```bash
+curl -X POST https://tu-project-id.supabase.co/functions/v1/reprocess-project \
+  -H "Authorization: Bearer <jwt>" \
+  -H "Content-Type: application/json" \
+  -d '{"project_id":"<id>","only_failed":false}'
+```
+
+### 12.3 CORS en funciones
+
+Todas las funciones exponen CORS con `Access-Control-Allow-Origin: *`. En producción, si usas un dominio personalizado, considera restringir el origen.
+
+### 12.4 Límites de uso no aplicados
+
+Comprueba que `user_subscriptions` tenga el tier correcto y que las funciones `can_user_make_query` y `get_user_usage_stats` estén creadas. Si usas Stripe, verifica que el webhook haya llegado y que `user_subscriptions` se haya actualizado.
+
+---
+
+## 13. Autor
 
 Built by **Santi** — SaaS builder, EdTech & GovTech.
-[santiagojimenezvalero.com](https://www.santiagojimenezvalero.com) · [LinkedIn](https://www.linkedin.com/in/santijiménezvalero)
+- Web: [santiagojimenezvalero.com](https://www.santiagojimenezvalero.com)
+- LinkedIn: [linkedin.com/in/santijiménezvalero](https://www.linkedin.com/in/santijiménezvalero)
