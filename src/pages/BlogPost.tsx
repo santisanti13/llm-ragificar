@@ -4,6 +4,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import BlogAudioPlayer from "@/components/BlogAudioPlayer";
 
 interface BlogPost {
   id: string;
@@ -231,6 +232,10 @@ const BlogPostPage = () => {
               )}
             </div>
           </header>
+
+          {/* Audio player */}
+          <BlogAudioPlayer title={post.title} contentMd={post.content_md} />
+
 
           {/* Article content */}
           <div
