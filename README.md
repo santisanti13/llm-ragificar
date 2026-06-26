@@ -304,14 +304,14 @@ O usa la URL directa con `Authorization: Bearer <api-key>`.
 | `generate-questions` | JWT | Genera 5 Q&A de entrenamiento por documento. |
 | `mcp-server` | API key | Servidor MCP JSON-RPC por proyecto. |
 | `demo-rag` | Anónimo | Demo pública de la landing (5 usos/IP/día). |
-| `create-checkout` | JWT | Crea sesión de Stripe Embedded Checkout. |
-| `create-portal-session` | JWT | Redirige al portal de facturación de Stripe. |
+| `create-checkout` | JWT manual | `verify_jwt=false`, pero exige Bearer token válido. |
+| `create-portal-session` | JWT manual | `verify_jwt=false`, pero exige Bearer token válido. |
 | `payments-webhook` | Stripe signature | Recibe eventos de Stripe. |
 | `generate-blog-post` | service_role / cron | Genera posts de blog cada 12 h. |
 | `tts-blog` | JWT | TTS de post para el reproductor de audio. |
 | `send-transactional-email` | JWT | Envía emails transaccionales. |
 | `process-email-queue` | service_role | Procesa colas de emails vía `pgmq`. |
-| `elevenlabs-conversation-token` | JWT | Token para WebRTC de ElevenLabs. |
+| `elevenlabs-conversation-token` | Sin JWT | Token para WebRTC de ElevenLabs (valida JWT internamente). |
 | `voice-stt` | JWT | Speech-to-text vía Lovable AI Gateway. |
 | `voice-tts` | JWT | Text-to-speech vía Lovable AI Gateway. |
 | `handle-email-suppression` | service_role | Maneja bounces/complaints. |
