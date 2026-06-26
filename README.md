@@ -135,10 +135,11 @@ supabase secrets set PAYMENTS_LIVE_WEBHOOK_SECRET=whsec_xxx
 | `SUPABASE_URL` | Edge Functions | Sí | Igual que `VITE_SUPABASE_URL`. |
 | `SUPABASE_ANON_KEY` | Edge Functions | Sí | Para autenticación de usuarios. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Edge Functions | Sí | Para operaciones administrativas (bypass RLS). |
-| `LOVABLE_API_KEY` | Edge Functions | Sí | Acceso a Lovable AI Gateway (chat, embeddings, TTS, STT). |
+| `LOVABLE_API_KEY` | Edge Functions | Sí | Acceso a Lovable AI Gateway (chat, embeddings, TTS, STT) y pasarela de pagos. |
+| `LOVABLE_SEND_URL` | process-email-queue | No | Override del endpoint de envío de emails (útil para desarrollo local). |
 | `ELEVENLABS_API_KEY` | elevenlabs-conversation-token | Sí | Si usas agente de voz. |
 | `ELEVENLABS_AGENT_ID` | elevenlabs-conversation-token | Sí | ID del agente conversacional. |
-| `STRIPE_SANDBOX_API_KEY` | create-checkout, payments-webhook | Sí para pagos | O también `STRIPE_LIVE_API_KEY`. |
+| `STRIPE_SANDBOX_API_KEY` | create-checkout, payments-webhook | Sí para pagos | O también `STRIPE_LIVE_API_KEY`. Stripe se enruta vía el gateway de Lovable. |
 | `PAYMENTS_SANDBOX_WEBHOOK_SECRET` | payments-webhook | Sí para webhooks | O también `PAYMENTS_LIVE_WEBHOOK_SECRET`. |
 | `SUPABASE_JWKS` | demo-rag | No | Sal usada para hashear IPs de demo. |
 
