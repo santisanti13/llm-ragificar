@@ -55,7 +55,6 @@ async function fetchChunkPcm(text: string, signal: AbortSignal): Promise<Uint8Ar
   const pieces: Uint8Array[] = [];
   let buf = "";
   let total = 0;
-  // Robust SSE line-based parser
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
@@ -87,7 +86,6 @@ async function fetchChunkPcm(text: string, signal: AbortSignal): Promise<Uint8Ar
 
 function pcmToAudioBuffer(ctx: AudioContext, pcm: Uint8Array): AudioBuffer {
   const usable = pcm.length - (pcm.length % 2);
-  // Copy into a fresh aligned buffer to satisfy Int16Array alignment
   const aligned = new Uint8Array(usable);
   aligned.set(pcm.subarray(0, usable));
   const samples = new Int16Array(aligned.buffer);
@@ -98,6 +96,13 @@ function pcmToAudioBuffer(ctx: AudioContext, pcm: Uint8Array): AudioBuffer {
   return buffer;
 }
 
+function formatTime(s: number): string {
+  if (!isFinite(s) || s < 0) s = 0;
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, "0")}`;
+}
+
 interface Props {
   title: string;
   contentMd: string;
@@ -106,45 +111,64 @@ interface Props {
 export default function BlogAudioPlayer({ title, contentMd }: Props) {
   const [state, setState] = useState<"idle" | "loading" | "playing" | "paused">("idle");
   const [progress, setProgress] = useState({ chunk: 0, total: 0 });
+  const [elapsed, setElapsed] = useState(0); // seconds played from start
+  const [estTotal, setEstTotal] = useState(0); // estimated total seconds
   const ctxRef = useRef<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const cancelledRef = useRef(false);
   const nextStartRef = useRef(0);
+  const playStartTimeRef = useRef(0); // ctx.currentTime when playback began
+  const rafRef = useRef<number | null>(null);
 
   const cleanup = () => {
     cancelledRef.current = true;
     abortRef.current?.abort();
     try { sourceRef.current?.stop(); } catch { /* noop */ }
     sourceRef.current = null;
+    if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
     if (ctxRef.current) { try { ctxRef.current.close(); } catch { /* noop */ } }
     ctxRef.current = null;
     nextStartRef.current = 0;
+    playStartTimeRef.current = 0;
   };
 
   useEffect(() => () => cleanup(), []);
+
+  const tick = () => {
+    const ctx = ctxRef.current;
+    if (!ctx) return;
+    const e = Math.max(0, ctx.currentTime - playStartTimeRef.current);
+    setElapsed(e);
+    rafRef.current = requestAnimationFrame(tick);
+  };
 
   const handlePause = async () => {
     if (ctxRef.current && state === "playing") {
       await ctxRef.current.suspend();
       setState("paused");
+      if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
     }
   };
   const handleResume = async () => {
     if (ctxRef.current && state === "paused") {
       await ctxRef.current.resume();
       setState("playing");
+      rafRef.current = requestAnimationFrame(tick);
     }
   };
   const handleStop = () => {
     cleanup();
     setState("idle");
     setProgress({ chunk: 0, total: 0 });
+    setElapsed(0);
+    setEstTotal(0);
   };
 
   const handlePlay = async () => {
     cancelledRef.current = false;
     setState("loading");
+    setElapsed(0);
 
     const Ctx = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
     const ctx = new Ctx();
@@ -155,7 +179,11 @@ export default function BlogAudioPlayer({ title, contentMd }: Props) {
     const fullText = `${title}. ${stripMarkdown(contentMd)}`;
     const chunks = chunkText(fullText, 260);
     setProgress({ chunk: 0, total: chunks.length });
-    console.log("[tts] chunks", chunks.length);
+
+    // Rough estimate: ~150 words/min spoken, ~260 words per chunk => ~104s per chunk
+    // We refine after first chunk decodes (real duration known).
+    let perChunkDur = 95;
+    setEstTotal(perChunkDur * chunks.length);
 
     try {
       for (let i = 0; i < chunks.length; i++) {
@@ -166,9 +194,12 @@ export default function BlogAudioPlayer({ title, contentMd }: Props) {
 
         const pcm = await fetchChunkPcm(chunks[i], ac.signal);
         if (cancelledRef.current || !ctxRef.current) return;
-        console.log("[tts] chunk", i + 1, "pcm bytes", pcm.length);
 
         const buffer = pcmToAudioBuffer(ctxRef.current, pcm);
+        // refine estimate using moving average of real chunk durations
+        perChunkDur = (perChunkDur * i + buffer.duration) / (i + 1);
+        setEstTotal(perChunkDur * chunks.length);
+
         const source = ctxRef.current.createBufferSource();
         source.buffer = buffer;
         source.connect(ctxRef.current.destination);
@@ -176,17 +207,20 @@ export default function BlogAudioPlayer({ title, contentMd }: Props) {
         const now = ctxRef.current.currentTime;
         const startAt = Math.max(now + 0.05, nextStartRef.current);
         source.start(startAt);
+        if (i === 0) {
+          playStartTimeRef.current = startAt;
+          if (rafRef.current === null) rafRef.current = requestAnimationFrame(tick);
+        }
         nextStartRef.current = startAt + buffer.duration;
         sourceRef.current = source;
         setState("playing");
 
-        // Wait until shortly before this chunk finishes so the next fetch
-        // overlaps with playback (smooth handoff between chunks).
         if (i < chunks.length - 1) {
           const waitMs = Math.max(0, (nextStartRef.current - ctxRef.current.currentTime - 1.5) * 1000);
           if (waitMs > 0) await new Promise((r) => setTimeout(r, waitMs));
         } else {
-          // Final chunk: wait for it to finish before cleanup
+          // exact total now known
+          setEstTotal(nextStartRef.current - playStartTimeRef.current);
           await new Promise<void>((resolve) => {
             source.onended = () => resolve();
             const safety = (buffer.duration + 1) * 1000;
@@ -203,44 +237,65 @@ export default function BlogAudioPlayer({ title, contentMd }: Props) {
     }
   };
 
+  const pct = estTotal > 0 ? Math.min(100, (elapsed / estTotal) * 100) : 0;
+  const isActive = state === "playing" || state === "paused" || state === "loading";
+
   return (
-    <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl border border-white/10 bg-white/[0.03]">
-      <div className="flex items-center gap-2 text-[#D4FF00]">
-        <Volume2 className="w-4 h-4" />
-        <span className="text-[10px] uppercase tracking-[0.25em] font-bold">Escuchar</span>
+    <div className="flex flex-col gap-3 p-4 rounded-xl border border-white/10 bg-white/[0.03]">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 text-[#D4FF00]">
+          <Volume2 className="w-4 h-4" />
+          <span className="text-[10px] uppercase tracking-[0.25em] font-bold">Escuchar</span>
+        </div>
+        <div className="flex-1 min-w-[120px] text-xs text-white/50 italic">
+          {state === "idle" && "Narración con voz orgánica"}
+          {state === "loading" && "Preparando audio..."}
+          {state === "playing" && progress.total > 0 && `Reproduciendo · ${progress.chunk}/${progress.total}`}
+          {state === "paused" && "Pausado"}
+        </div>
+        <div className="flex items-center gap-2">
+          {state === "idle" && (
+            <button onClick={handlePlay} className="flex items-center gap-2 bg-[#D4FF00] text-black px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#AAFF00] transition-colors">
+              <Play className="w-3.5 h-3.5" /> Play
+            </button>
+          )}
+          {state === "loading" && (
+            <button disabled className="flex items-center gap-2 bg-white/10 text-white/60 px-3 py-1.5 rounded-lg text-xs">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" /> Cargando
+            </button>
+          )}
+          {state === "playing" && (
+            <button onClick={handlePause} className="flex items-center gap-2 bg-[#D4FF00] text-black px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#AAFF00] transition-colors">
+              <Pause className="w-3.5 h-3.5" /> Pausa
+            </button>
+          )}
+          {state === "paused" && (
+            <button onClick={handleResume} className="flex items-center gap-2 bg-[#D4FF00] text-black px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#AAFF00] transition-colors">
+              <Play className="w-3.5 h-3.5" /> Reanudar
+            </button>
+          )}
+          {isActive && (
+            <button onClick={handleStop} className="text-xs text-white/50 hover:text-white px-2">
+              Detener
+            </button>
+          )}
+        </div>
       </div>
-      <div className="flex-1 min-w-[120px] text-xs text-white/50 italic">
-        {state === "idle" && "Narración con voz orgánica"}
-        {state === "loading" && "Preparando audio..."}
-        {state === "playing" && progress.total > 0 && `Reproduciendo · ${progress.chunk}/${progress.total}`}
-        {state === "paused" && "Pausado"}
-      </div>
-      <div className="flex items-center gap-2">
-        {state === "idle" && (
-          <button onClick={handlePlay} className="flex items-center gap-2 bg-[#D4FF00] text-black px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#AAFF00] transition-colors">
-            <Play className="w-3.5 h-3.5" /> Play
-          </button>
-        )}
-        {state === "loading" && (
-          <button disabled className="flex items-center gap-2 bg-white/10 text-white/60 px-3 py-1.5 rounded-lg text-xs">
-            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Cargando
-          </button>
-        )}
-        {state === "playing" && (
-          <button onClick={handlePause} className="flex items-center gap-2 bg-[#D4FF00] text-black px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#AAFF00] transition-colors">
-            <Pause className="w-3.5 h-3.5" /> Pausa
-          </button>
-        )}
-        {state === "paused" && (
-          <button onClick={handleResume} className="flex items-center gap-2 bg-[#D4FF00] text-black px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-[#AAFF00] transition-colors">
-            <Play className="w-3.5 h-3.5" /> Reanudar
-          </button>
-        )}
-        {(state === "playing" || state === "paused" || state === "loading") && (
-          <button onClick={handleStop} className="text-xs text-white/50 hover:text-white px-2">
-            Detener
-          </button>
-        )}
+
+      {/* Progress bar — full track from start to end */}
+      <div className="flex items-center gap-3">
+        <span className="text-[10px] tabular-nums text-white/50 w-9 text-right">
+          {formatTime(elapsed)}
+        </span>
+        <div className="relative flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+          <div
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#AAFF00] to-[#D4FF00] transition-[width] duration-200 ease-linear"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <span className="text-[10px] tabular-nums text-white/50 w-9">
+          {formatTime(estTotal)}
+        </span>
       </div>
     </div>
   );
