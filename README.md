@@ -4,6 +4,8 @@
 
 **Live:** [llm-ragificar.lovable.app](https://llm-ragificar.lovable.app)
 
+> ⚠️ **Nota de seguridad:** el repositorio no incluye `.env.example` y el archivo `.env` actual contiene credenciales reales del proyecto. **No lo commitees**. Si vas a trabajar en equipo, crea manualmente un `.env.example` a partir de las tablas de este documento.
+
 ---
 
 ## 1. Qué es RAGify
