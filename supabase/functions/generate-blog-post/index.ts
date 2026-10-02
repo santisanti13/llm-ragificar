@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
+import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const SITE_URL = 'https://llm-ragificar.lovable.app'
 const NOTIFY_EMAIL = 'santiagojimenezvalero@gmail.com'
@@ -184,10 +185,9 @@ No incluyas texto fuera del JSON. No uses markdown fencing alrededor del JSON.`
 
   // 2. Send notification email
   const contentPreview = (post.content_md || '').slice(0, 700) + '…'
-  const emailRes = await supabase.functions.invoke('send-transactional-email', {
-    body: {
-      templateName: 'blog-post-generated',
-      recipientEmail: NOTIFY_EMAIL,
+  let emailOk = false
+  try {
+    const result = await sendTemplateEmail('blog-post-generated', NOTIFY_EMAIL, {
       idempotencyKey: `blog-${inserted.id}`,
       templateData: {
         title,
@@ -197,12 +197,27 @@ No incluyas texto fuera del JSON. No uses markdown fencing alrededor del JSON.`
         tags: insertPayload.tags,
         contentPreview,
       },
-    },
-  })
-
-  if (emailRes.error) {
-    console.warn('Email send failed (post was created):', emailRes.error)
+    })
+    emailOk = result.sent
+    const { error: logErr } = await supabase.from('email_send_log').insert({
+      message_id: null,
+      template_name: 'blog-post-generated',
+      recipient_email: NOTIFY_EMAIL,
+      status: result.sent ? 'sent' : 'suppressed',
+    })
+    if (logErr) console.error('email_send_log insert failed', logErr.message)
+  } catch (e) {
+    console.warn('Email send failed (post was created):', (e as Error).message)
+    const { error: logErr } = await supabase.from('email_send_log').insert({
+      message_id: null,
+      template_name: 'blog-post-generated',
+      recipient_email: NOTIFY_EMAIL,
+      status: 'failed',
+      error_message: (e as Error).message,
+    })
+    if (logErr) console.error('email_send_log insert failed', logErr.message)
   }
+  const emailRes = { error: emailOk ? null : 'not sent' }
 
   return new Response(
     JSON.stringify({ success: true, post: inserted, url: postUrl, email_queued: !emailRes.error }),
