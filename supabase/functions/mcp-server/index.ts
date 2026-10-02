@@ -150,9 +150,9 @@ async function runTool(
     const ranked = [...merged.values()].sort((a, b) => b.score - a.score).slice(0, topK);
     const docIds = [...new Set(ranked.map((r) => r.document_id))];
     const { data: docs } = docIds.length
-      ? await supabase.from("documents").select("id, filename").in("id", docIds)
+      ? await supabase.from("documents").select("id, name").in("id", docIds)
       : { data: [] as any[] };
-    const nameById = new Map((docs ?? []).map((d: any) => [d.id, d.filename]));
+    const nameById = new Map((docs ?? []).map((d: any) => [d.id, d.name]));
 
     const results = ranked.map((r, i) => ({
       rank: i + 1,
@@ -189,17 +189,17 @@ async function runTool(
     const limit = Math.max(1, Math.min(200, Number(args.limit ?? 50) | 0));
     const { data, error } = await supabase
       .from("documents")
-      .select("id, filename, file_size, mime_type, status, created_at")
+      .select("id, name, file_size, status, chunk_count, created_at")
       .eq("project_id", projectId)
       .order("created_at", { ascending: false })
       .limit(limit);
     if (error) throw new Error(error.message);
     const items = (data ?? []).map((d: any) => ({
       id: d.id,
-      filename: d.filename,
+      filename: d.name,
       size_bytes: d.file_size,
-      mime_type: d.mime_type,
       status: d.status,
+      chunk_count: d.chunk_count,
       created_at: d.created_at,
     }));
     return {
