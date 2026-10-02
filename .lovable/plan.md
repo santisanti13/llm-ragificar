@@ -1,39 +1,30 @@
-## Plan: Memoria conversacional + ajuste UI
+## Plan: Arreglos del servidor MCP + publicación del blog en LinkedIn
 
-### 1. Ajuste rápido — Logo en Analytics
-En `src/pages/Analytics.tsx`, aumentar la altura del logo de `h-8` a `h-12` para mejorar visibilidad.
+### 1. Arreglar `list_documents` (MCP)
+La tabla de documentos guarda el nombre en la columna `name`, no en `filename`, y no tiene `mime_type`. El servidor MCP pide columnas que no existen.
+- En la función `mcp-server`: cambiar `filename` por `name` en `list_documents` y en `search_knowledge` (que también lo usa para poner nombre a los fragmentos), quitar `mime_type` y añadir `chunk_count`.
+- La salida mantiene el campo `filename` para no romper a los clientes que ya lo usan.
 
-### 2. Memoria conversacional por hilo
-Implementar un sistema de memoria de largo plazo para que el chatbot mantenga contexto entre mensajes sin saturar el modelo de lenguaje.
+### 2. Error 402 de `ask`: "Credits exhausted"
+No es OpenAI ni Anthropic: `ask` usa la IA de Lovable, que se paga con los créditos de tu espacio de trabajo. El código está bien; se han acabado los créditos.
+- Lo que tienes que hacer tú: recargar en **Settings → Plans & credits** (o subir el límite de gasto de IA si hay uno puesto).
+- Mejora del código: que el error muestre el mensaje real que devuelve la IA (en vez de un genérico "Credits exhausted") y se diferencie del 402 de "límite mensual del plan" de RAGify, para que Claude/Cursor enseñen un error claro.
+- El blog automático y el chat también gastan estos créditos, así que se pararán hasta que recargues.
 
-#### Tablas nuevas
-- `conversation_threads` — un hilo por sesión de chat (campos: `id`, `project_id`, `user_id`, `title`, `summary`, `message_count`, `created_at`, `updated_at`).
-- `thread_messages` — mensajes individuales dentro de un hilo (campos: `id`, `thread_id`, `role`, `content`, `tokens_used`, `created_at`).
+### 3. Publicar cada post del blog en la página de LinkedIn de la empresa
+- Conectar LinkedIn con el conector de Lovable (verás una tarjeta para iniciar sesión con la cuenta que administra la página "RAG as a Service").
+- Al terminar `generate-blog-post`, publicar en la página de empresa (organización 110143162): título, un resumen corto de 2-3 frases, hashtags (#RAG #LLM #MCP #IA) y el enlace al post en `llm-ragificar.lovable.app/blog/<slug>`.
+- Guardar en `blog_posts` si se publicó en LinkedIn (`linkedin_post_id`, `linkedin_posted_at`) para no repetir publicaciones.
+- Si LinkedIn falla, el post del blog y el email se mantienen; el error queda guardado y no se vuelve a intentar sin parar.
 
-#### Lógica de resumen
-- Cuando un hilo alcanza N mensajes (umbral configurable, ej. 10), la edge function `rag-chat` genera un resumen de la conversación con Gemini Flash.
-- El resumen se guarda en `conversation_threads.summary`.
-- En llamadas subsiguientes, el sistema prompt incluye el resumen + los últimos 3 mensajes como contexto de ventana corta, descartando el historial intermedio.
+**Aviso importante:** publicar como *página de empresa* requiere el permiso `w_organization_social`, que LinkedIn solo da a apps aprobadas (Community Management API). Si el conector solo tiene permiso para publicar en tu perfil personal (`w_member_social`), hay dos opciones:
+- a) publicar en tu perfil personal enlazando a la página, o
+- b) que solicites a LinkedIn el acceso a la Community Management API.
+Lo comprobaré con los permisos reales de la conexión antes de dar nada por hecho.
 
-#### Cambios en edge function `rag-chat`
-- Aceptar un `thread_id` opcional.
-- Si existe: recuperar resumen + últimos mensajes; inyectarlos en el system prompt.
-- Si no existe: crear un nuevo hilo implícito y devolver su `thread_id`.
-- Emitir `thread_id` en el evento final del SSE para que el frontend lo reutilice.
-
-#### Cambios en frontend
-- `ChatInterface.tsx`: almacenar `thread_id` en estado local; pasarlo en cada petición.
-- Listado de hilos previos en la sidebar del chat (o panel lateral).
-- Botón "Nueva conversación" para reiniciar `thread_id`.
-
-#### Rate limiting / tiers
-- Los límites de queries mensuales ya existentes (`user_subscriptions`) cubren el uso de hilos (cada mensaje cuenta como 1 query).
-
-### 3. RLS y seguridad
-- `conversation_threads`: usuarios solo ven/actualizan sus propios hilos (`user_id = auth.uid()`).
-- `thread_messages`: acceso solo a mensajes de hilos propios (via join a `conversation_threads`).
-- Ambas tablas con `GRANT` a `authenticated` y `service_role`.
-
-### 4. Tests
-- Verificar que `thread_id` persiste entre mensajes.
-- Verificar que el resumen se genera tras el umbral configurado.
+### Detalles técnicos
+- `mcp-server/index.ts`: `.select("id, name, file_size, status, chunk_count, created_at")`; mapear `filename: d.name`.
+- `api-query`: en el 402/403 de la gateway, reenviar el cuerpo con `type: "ai_credits_exhausted"`.
+- Migración: `ALTER TABLE blog_posts ADD COLUMN linkedin_post_id text, linkedin_posted_at timestamptz, linkedin_error text`.
+- LinkedIn: `POST /rest/posts` vía connector gateway con `author: "urn:li:organization:110143162"`, cabeceras `LinkedIn-Version` y `X-Restli-Protocol-Version: 2.0.0`, artículo con enlace al post.
+- Desplegar `mcp-server`, `api-query` y `generate-blog-post`; probar `tools/call list_documents` con la API key.
