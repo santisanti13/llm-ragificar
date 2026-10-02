@@ -343,9 +343,16 @@ serve(async (req) => {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (response.status === 402 || response.status === 403) {
+        let upstream: any = null;
+        try { upstream = JSON.parse(errorText); } catch { /* ignore */ }
+        const msg = upstream?.message ?? upstream?.error?.message ?? (typeof upstream?.error === "string" ? upstream.error : null);
+        return new Response(JSON.stringify({
+          error: msg || "Créditos de IA agotados en el espacio de trabajo de RAGify.",
+          type: "ai_credits_exhausted",
+          upstream_status: response.status,
+        }), {
+          status: response.status, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       throw new Error(`AI error: ${response.status}`);
